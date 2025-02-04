@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white shadow-2xl rounded-lg p-8 max-w-4xl w-full">
+        <!-- Navigation -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-extrabold text-indigo-600">API Key Management</h1>
+            <div class="space-x-4">
+                <a href="/get-usage" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </a>
+                <a href="/" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="/logout" class="text-red-600 hover:text-red-800">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- API Keys List -->
+        <div class="bg-gray-100 rounded-lg p-6 shadow-md fade-in">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Active API Keys</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-indigo-50">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Phone</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">API Key</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Usage</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Limit</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Created At</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for key in api_keys %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ key.phone }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ key.key }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                <span id="usage_{{ key.key }}">{{ key.usage }}</span>/{{ key.limit }}
+                                <button onclick="resetUsage('{{ key.key }}')"
+                                    class="ml-2 text-green-600 hover:text-green-800">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">
+                                <span id="limit_{{ key.key }}">{{ key.limit }}</span>
+                                <button onclick="showEditLimit('{{ key.key }}', {{ key.limit }})"
+                                    class="ml-2 text-indigo-600 hover:text-indigo-800">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ key.created_at }}</td>
+                            <td class="px-4 py-3 text-sm space-x-2">
+                                <button onclick="revokeKey('{{ key.key }}')" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i> Revoke
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Limit Modal -->
+    <div id="editLimitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="text-lg font-semibold mb-4">Edit Token Limit</h3>
+            <input type="number" id="newLimit" class="w-full px-3 py-2 border rounded mb-4"
+                placeholder="Enter new limit">
+            <input type="hidden" id="currentApiKey">
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cancel
+                </button>
+                <button onclick="updateLimit()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showEditLimit(apiKey, currentLimit) {
+            document.getElementById('editLimitModal').style.display = 'flex';
+            document.getElementById('newLimit').value = currentLimit;
+            document.getElementById('currentApiKey').value = apiKey;
+        }
+
+        function closeEditModal() {
+            document.getElementById('editLimitModal').style.display = 'none';
+        }
+
+        async function updateLimit() {
+            const apiKey = document.getElementById('currentApiKey').value;
+            const newLimit = parseInt(document.getElementById('newLimit').value);
+
+            if (!newLimit || newLimit <= 0) {
+                alert('Please enter a valid limit');
+                return;
+            }
+
+            try {
+                const response = await fetch('/update-api-key-limit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        new_limit: newLimit
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update limit');
+                }
+
+                document.getElementById(`limit_${apiKey}`).textContent = newLimit;
+                closeEditModal();
+            } catch (error) {
+                alert('Error updating limit: ' + error.message);
+            }
+        }
+
+        async function resetUsage(apiKey) {
+            if (!confirm('Are you sure you want to reset the usage for this API key?')) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset-api-key-usage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ api_key: apiKey }),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to reset usage');
+                }
+                document.getElementById(`usage_${apiKey}`).textContent = '0';
+            } catch (error) {
+                alert('Error resetting usage: ' + error.message);
+            }
+        }
+
+        async function revokeKey(apiKey) {
+            if (!confirm('Are you sure you want to revoke this API key?')) {
+                return;
+            }
+            try {
+                const response = await fetch('/revoke-api-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ api_key: apiKey }),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to revoke API key');
+                }
+                window.location.reload();
+            } catch (error) {
+                alert('Error revoking API key: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

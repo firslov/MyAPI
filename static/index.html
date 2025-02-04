@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Service</title>
+    <link rel="icon" href="static/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script>
+        async function generateApiKey() {
+            const phone = document.getElementById('phone_input').value;
+            if (!phone) {
+                showMessage('请输入手机号', true);
+                return;
+            }
+            // 简单的手机号验证
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                showMessage('请输入有效的手机号', true);
+                return;
+            }
+            try {
+                const response = await fetch('/generate-api-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone }),
+                });
+                if (!response.ok) {
+                    throw new Error(`Server response error: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.error) {
+                    showMessage(data.error, true);
+                } else {
+                    const apiKey = data.api_key;
+                    document.getElementById('api_key_display').textContent = apiKey;
+                    updateCurlCommand();
+                    showMessage('API密钥生成成功!');
+                }
+            } catch (error) {
+                console.error('Generating API key failed:', error);
+                showMessage('生成API密钥失败: ' + error.message, true);
+            }
+        }
+
+        function updateCurlCommand() {
+            const baseUrl = document.getElementById('base_url_display').textContent;
+            const apiKey = document.getElementById('api_key_display').textContent;
+            if (apiKey === '未生成API密钥') return;
+            const curlCommand = `curl ${baseUrl}/v1/chat/completions -H "Content-Type: application/json" -H "Authorization: Bearer ${apiKey}" -d '{"messages": [{"role": "user","content": "Hi"}],"model": "glm-4-flash"}'`;
+            document.getElementById('curl_command_display').textContent = curlCommand;
+        }
+
+        function copyToClipboard(elementId) {
+            var text = document.getElementById(elementId).innerText;
+            var dummy = document.createElement("textarea");
+            dummy.style.position = 'absolute';
+            dummy.style.left = '-9999px';
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+            showMessage("Copied to clipboard!");
+        }
+
+        function showMessage(message, isError) {
+            const messageArea = document.getElementById('message_area');
+            messageArea.textContent = message;
+            messageArea.className = isError ? 'bg-red-100 text-red-700 p-4 rounded' : 'bg-green-100 text-green-700 p-4 rounded';
+            messageArea.style.display = 'block';
+            messageArea.classList.add('fade-in');
+            setTimeout(() => {
+                messageArea.style.display = 'none';
+                messageArea.classList.remove('fade-in');
+            }, 3000);
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .truncate {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+
+        @media (min-width: 640px) {
+            .truncate {
+                max-width: 300px;
+            }
+        }
+
+        .hover-full:hover .truncate {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+        }
+
+        /* Model 部分的样式 */
+        .model-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            max-height: 1.8em;
+            /* 调整默认高度以显示更多条目 */
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            text-align: right;
+        }
+
+        .model-container:hover .model-list {
+            max-height: 27em;
+            /* 鼠标悬停时展开所有条目 */
+        }
+
+        .model-item {
+            padding: 0.25rem 0;
+            line-height: 1.5;
+            /* 恢复默认行高 */
+            white-space: nowrap;
+            /* 防止内容换行 */
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white shadow-2xl rounded-lg p-6 w-full max-w-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-4xl font-extrabold text-indigo-600">API Service</h1>
+            <div class="space-x-4">
+                <a href="/manage-keys" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-key"></i> Key Management
+                </a>
+                <a href="/get-usage" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- API Information Table -->
+        <div class="bg-gray-100 rounded-lg p-6 shadow-md mb-6 fade-in">
+            <div class="space-y-4">
+                <!-- API Key Section -->
+                <div class="bg-gray-100 rounded-lg p-6 shadow-md mb-6 fade-in">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">获取API密钥</h2>
+                    <div class="space-y-4">
+                        <!-- Phone Number Input -->
+                        <div class="hover-full hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                <div class="flex items-center mb-2 sm:mb-0">
+                                    <i class="fas fa-phone text-indigo-500 text-2xl mr-3"></i>
+                                    <span class="text-xl font-semibold text-gray-800">手机号</span>
+                                </div>
+                                <div class="flex items-center w-full sm:w-auto">
+                                    <input type="tel" id="phone_input" placeholder="请输入手机号"
+                                        class="px-3 py-1 border border-gray-300 rounded-lg mr-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <button onclick="generateApiKey()"
+                                        class="bg-indigo-500 text-white px-4 py-1 rounded-lg hover:bg-indigo-600 transition-colors">
+                                        获取API密钥
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- API Key Display -->
+                        <div class="hover-full hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                <div class="flex items-center mb-2 sm:mb-0">
+                                    <i class="fas fa-key text-indigo-500 text-2xl mr-3"></i>
+                                    <span class="text-xl font-semibold text-gray-800">API密钥</span>
+                                </div>
+                                <div class="flex items-center w-full sm:w-auto">
+                                    <span id="api_key_display"
+                                        class="truncate text-green-600 text-lg font-bold mr-2">未生成API密钥</span>
+                                    <button
+                                        class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                                        onclick="copyToClipboard('api_key_display')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Base URL -->
+                <div class="hover-full hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                        <div class="flex items-center mb-2 sm:mb-0">
+                            <i class="fas fa-link text-indigo-500 text-2xl mr-3"></i>
+                            <span class="text-xl font-semibold text-gray-800">Base URL</span>
+                        </div>
+                        <div class="flex items-center w-full sm:w-auto">
+                            <span id="base_url_display"
+                                class="truncate text-green-600 text-lg font-bold mr-2">https://api.aihao.world</span>
+                            <button
+                                class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                                onclick="copyToClipboard('base_url_display')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command -->
+                <div class="hover-full hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                        <div class="flex items-center mb-2 sm:mb-0">
+                            <i class="fas fa-terminal text-indigo-500 text-2xl mr-3"></i>
+                            <span class="text-xl font-semibold text-gray-800">Command</span>
+                        </div>
+                        <div class="flex items-center w-full sm:w-auto">
+                            <span id="curl_command_display"
+                                class="truncate text-green-600 text-lg mr-2">Loading...</span>
+                            <button
+                                class="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                                onclick="copyToClipboard('curl_command_display')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model -->
+                <div class="hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                    <div class="model-container">
+                        <div class="flex items-center">
+                            <i class="fas fa-cube text-indigo-500 text-2xl mr-3"></i>
+                            <span class="text-xl font-semibold text-gray-800">Model</span>
+                        </div>
+                        <div class="model-list">
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">deepseek-chat</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-4-plus</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-4-air</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-4-airx</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-4-flash</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-4-flashx</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">glm-zero-preview</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">Baichuan4</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">Baichuan4-Air</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">Baichuan4-Turbo</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">doubao-lite-32k(personal)</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">doubao-pro-32k(personal)</span>
+                            </div>
+                            <div class="model-item">
+                                <span class="text-green-600 text-lg">llama-3.3-70b-versatile</span>
+                            </div>
+                            <!-- Add more models as needed -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage -->
+                <div class="hover:bg-gray-50 transition-colors p-3 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-line text-indigo-500 text-2xl mr-3"></i>
+                            <span class="text-xl font-semibold text-gray-800">Usage</span>
+                        </div>
+                        <span class="text-green-600 text-lg">1,000,000 tokens limit</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="message_area" class="mt-4" style="display:none;">
+            <!-- Messages will be displayed here -->
+        </div>
+    </div>
+</body>
+
+</html>

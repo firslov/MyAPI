@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Usage Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white shadow-2xl rounded-lg p-8 max-w-4xl w-full">
+        <!-- Navigation -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-extrabold text-indigo-600">API Usage Dashboard</h1>
+            <div class="space-x-4">
+                <a href="/manage-keys" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-key"></i> Manage Keys
+                </a>
+                <a href="/" class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="/logout" class="text-red-600 hover:text-red-800">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Usage Range Card -->
+            <div class="bg-gray-100 rounded-lg p-6 shadow-md transition-transform transform hover:scale-105 fade-in">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-chart-bar text-indigo-500 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Usage Range</h2>
+                </div>
+                <ul class="space-y-3">
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-less-than text-indigo-400 mr-2"></i> &lt;100</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ less_than_100 }}</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-exchange-alt text-indigo-400 mr-2"></i>
+                            100~10000</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ between_100_and_10000 }}</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-greater-than text-indigo-400 mr-2"></i>
+                            &gt;10000</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ more_than_10000 }}</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Totals Card -->
+            <div class="bg-gray-100 rounded-lg p-6 shadow-md transition-transform transform hover:scale-105 fade-in">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-calculator text-indigo-500 text-2xl mr-3"></i>
+                    <h2 class="text-xl font-semibold text-gray-800">Totals</h2>
+                </div>
+                <ul class="space-y-3">
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-key text-indigo-400 mr-2"></i> Total Keys</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ total_entries }}</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-list-ol text-indigo-400 mr-2"></i> Total
+                            Reqs</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ total_reqs }}</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-chart-line text-indigo-400 mr-2"></i> Total
+                            Usage</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ total_usage }}</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span class="text-gray-700"><i class="fas fa-code text-indigo-400 mr-2"></i> Total
+                            Code_reqs</span>
+                        <span class="text-lg font-bold text-indigo-600">{{ total_code_reqs }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Current Time Card -->
+        <div class="bg-gray-100 rounded-lg p-6 shadow-md transition-transform transform hover:scale-105 fade-in">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-clock text-indigo-500 text-2xl mr-3"></i>
+                <h2 class="text-xl font-semibold text-gray-800">Current Time</h2>
+            </div>
+            <p class="text-lg text-indigo-600">{{ current_time }}</p>
+        </div>
+
+        <!-- API Keys Table -->
+        <div class="mt-8 bg-gray-100 rounded-lg p-6 shadow-md transition-transform transform hover:scale-105 fade-in">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">API Keys Information</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="bg-indigo-50">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Key</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Phone</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Usage</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Limit</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Reqs</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Code Reqs</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Created At</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-indigo-600">Last Used</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for api_key in api_keys %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.key[-6:] }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.phone or 'N/A' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.usage }}/{{ api_key.limit }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.limit }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.reqs }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.code_reqs }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.created_at or 'N/A' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ api_key.last_used or 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

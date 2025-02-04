@@ -1,0 +1,10 @@
+{
+    "server-name": {
+        "url": "http://example.com",
+        "model": [
+            "model1",
+            "model2"
+        ],
+        "apikey": "optional-api-key"
+    }
+}

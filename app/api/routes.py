@@ -214,6 +214,7 @@ async def proxy_handler(request: Request):
     if req_data.get("stream", False):
 
         async def stream_wrapper():
+            response = None
             try:
                 response = await llm_service.forward_request(
                     target, req_data, headers, stream=True
@@ -223,15 +224,18 @@ async def proxy_handler(request: Request):
             except Exception as e:
                 yield str(e)
             finally:
-                await response.aclose()
+                if response is not None:
+                    await response.aclose()
 
         return StreamingResponse(stream_wrapper(), media_type="application/json")
 
     # 普通响应处理
     try:
+        response = None
         response = await llm_service.forward_request(target, req_data, headers)
         response_data = await response.json()
-        await response.aclose()
+        if response is not None:
+            await response.aclose()
 
         # 更新最终用量
         if is_chat:

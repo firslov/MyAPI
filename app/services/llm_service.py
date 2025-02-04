@@ -61,25 +61,32 @@ class LLMService:
             HTTPException: 请求失败时抛出
         """
         try:
-            if stream:
-                response = await self.http_client.post(
-                    target, json=data, headers=headers, timeout=300.0
-                )
-                response.raise_for_status()
-                return response
-            else:
-                response = await self.http_client.post(
-                    target, json=data, headers=headers
-                )
-                response.raise_for_status()
-                return response
+            response = await self.http_client.post(
+                target, json=data, headers=headers, timeout=300.0 if stream else None
+            )
+            response.raise_for_status()
+            return response
         except httpx.HTTPStatusError as e:
             logger.error(f"Upstream error: {e.response.status_code}")
+            if stream:
+                return e.response
             raise HTTPException(
                 status_code=e.response.status_code, detail=f"Upstream error: {str(e)}"
             )
+        except httpx.TimeoutException as e:
+            logger.error(f"Request timeout: {str(e)}")
+            if stream:
+                return httpx.Response(status_code=504, text=str(e))
+            raise HTTPException(status_code=504, detail=f"Request timeout: {str(e)}")
+        except httpx.NetworkError as e:
+            logger.error(f"Network error: {str(e)}")
+            if stream:
+                return httpx.Response(status_code=502, text=str(e))
+            raise HTTPException(status_code=502, detail=f"Network error: {str(e)}")
         except Exception as e:
             logger.error(f"Request failed: {str(e)}")
+            if stream:
+                return httpx.Response(status_code=500, text=str(e))
             raise HTTPException(
                 status_code=500, detail=f"Internal server error: {str(e)}"
             )

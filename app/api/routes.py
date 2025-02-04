@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from fastapi.responses import (
     StreamingResponse,
     FileResponse,
@@ -182,6 +182,13 @@ async def manage_keys(request: Request):
     return templates.TemplateResponse(
         "apikey_manage.html", {"request": request, "api_keys": api_keys}
     )
+
+
+@router.options("/v1/chat/completions")
+@router.options("/v1/completions")
+async def options_handler():
+    """处理 OPTIONS 请求"""
+    return Response(status_code=200)
 
 
 @router.post("/v1/chat/completions")

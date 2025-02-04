@@ -1,9 +1,10 @@
-from typing import Dict, List, Optional
+from typing import Union, Any, Dict, List, Optional
 import httpx
 from fastapi import HTTPException
 from app.models.api_models import AppState
 from app.utils.helpers import logger
 from app.config.settings import settings
+from httpx import AsyncClient
 
 
 class LLMService:
@@ -45,27 +46,26 @@ class LLMService:
 
     async def forward_request(
         self, target: str, data: Dict, headers: Dict, stream: bool = False
-    ) -> httpx.Response:
-        """转发请求到目标服务器
-
-        Args:
-            target: 目标URL
-            data: 请求数据
-            headers: 请求头
-            stream: 是否使用流式响应
-
-        Returns:
-            httpx.Response: 响应对象
-
-        Raises:
-            HTTPException: 请求失败时抛出
-        """
+    ) -> Union[httpx.Response, Dict[str, Any]]:
+        """转发请求到目标服务器"""
         try:
+            if stream:
+                # 直接返回 Response 对象，不要 await
+                return self.http_client.stream(
+                    "POST", target, json=data, headers=headers, timeout=300.0
+                )
+
+            # 非流式请求
             response = await self.http_client.post(
-                target, json=data, headers=headers, timeout=300.0 if stream else None
+                target, json=data, headers=headers, timeout=None
             )
             response.raise_for_status()
-            return response
+
+            # 读取响应数据并关闭连接
+            json_data = await response.json()
+            await response.aclose()
+            return json_data
+
         except httpx.HTTPStatusError as e:
             logger.error(f"Upstream error: {e.response.status_code}")
             if stream:
@@ -73,16 +73,6 @@ class LLMService:
             raise HTTPException(
                 status_code=e.response.status_code, detail=f"Upstream error: {str(e)}"
             )
-        except httpx.TimeoutException as e:
-            logger.error(f"Request timeout: {str(e)}")
-            if stream:
-                return httpx.Response(status_code=504, text=str(e))
-            raise HTTPException(status_code=504, detail=f"Request timeout: {str(e)}")
-        except httpx.NetworkError as e:
-            logger.error(f"Network error: {str(e)}")
-            if stream:
-                return httpx.Response(status_code=502, text=str(e))
-            raise HTTPException(status_code=502, detail=f"Network error: {str(e)}")
         except Exception as e:
             logger.error(f"Request failed: {str(e)}")
             if stream:

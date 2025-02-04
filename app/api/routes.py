@@ -210,37 +210,37 @@ async def proxy_handler(request: Request):
     # 构造请求头
     headers = llm_service.get_auth_header(model, api_key)
 
-    # 流式响应处理
-    if req_data.get("stream", False):
+    try:
+        # 流式响应处理
+        if req_data.get("stream", False):
 
-        async def stream_wrapper():
-            response = None
-            try:
-                response = await llm_service.forward_request(
+            async def stream_wrapper():
+                client_stream = await llm_service.forward_request(
                     target, req_data, headers, stream=True
                 )
-                async for chunk in response.aiter_text():
-                    yield chunk
-            except Exception as e:
-                yield str(e)
-            finally:
-                if response is not None:
-                    await response.aclose()
+                async with client_stream as response:
+                    async for chunk in response.aiter_text():
+                        yield chunk
 
-        return StreamingResponse(stream_wrapper(), media_type="application/json")
+            return StreamingResponse(
+                stream_wrapper(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            )
 
-    # 普通响应处理
-    try:
-        response = None
-        response = await llm_service.forward_request(target, req_data, headers)
-        response_data = await response.json()
-        if response is not None:
-            await response.aclose()
+        # 普通响应处理
+        response_data = await llm_service.forward_request(target, req_data, headers)
 
         # 更新最终用量
         if is_chat:
             api_service.update_final_usage(api_key, response_data)
 
         return JSONResponse(response_data)
+
     except HTTPException as e:
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
+    except Exception as e:
+        return JSONResponse({"error": "Internal server error"}, status_code=500)

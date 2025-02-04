@@ -8,6 +8,7 @@ from fastapi.responses import (
 )
 from fastapi.templating import Jinja2Templates
 import os
+import json
 from typing import Dict, Optional
 from datetime import datetime
 
@@ -218,8 +219,28 @@ async def proxy_handler(request: Request):
                 client_stream = await llm_service.forward_request(
                     target, req_data, headers, stream=True
                 )
+                last_data_chunk = None  # 记录最后一个数据块
+
                 async with client_stream as response:
                     async for chunk in response.aiter_text():
+                        if (
+                            chunk.strip() == "data: [DONE]"
+                            and last_data_chunk
+                            and is_chat
+                        ):
+                            # 当遇到[DONE]时，使用前一个数据块的usage信息
+                            try:
+                                chunk_data = json.loads(
+                                    last_data_chunk.replace("data: ", "")
+                                )
+                                if "usage" in chunk_data and chunk_data["usage"]:
+                                    api_service.update_final_usage(api_key, chunk_data)
+                            except (json.JSONDecodeError, KeyError):
+                                pass
+                        elif chunk.strip().startswith(
+                            "data: {"
+                        ):  # 只记录有效的JSON数据块
+                            last_data_chunk = chunk
                         yield chunk
 
             return StreamingResponse(

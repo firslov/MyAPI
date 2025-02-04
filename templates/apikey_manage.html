@@ -23,31 +23,101 @@
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
+
+        /* 自定义滚动条样式 */
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #818cf8 #e5e7eb;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #818cf8;
+            border-radius: 3px;
+        }
+
+        /* 移动端表格样式优化 */
+        @media (max-width: 768px) {
+            .responsive-table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .mobile-card {
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                background: #fff;
+                border-radius: 0.5rem;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .mobile-card-label {
+                font-weight: 600;
+                color: #4F46E5;
+                margin-bottom: 0.25rem;
+            }
+
+            .mobile-card-value {
+                margin-bottom: 0.5rem;
+            }
+
+            .table-hidden {
+                display: none;
+            }
+        }
+
+        /* 悬浮效果 */
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
     </style>
 </head>
 
-<body class="bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-center min-h-screen">
-    <div class="bg-white shadow-2xl rounded-lg p-8 max-w-4xl w-full">
+<body class="bg-gradient-to-r from-blue-50 to-green-50 min-h-screen p-4">
+    <div class="bg-white shadow-2xl rounded-lg p-4 md:p-8 max-w-4xl mx-auto">
         <!-- Navigation -->
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-extrabold text-indigo-600">API Key Management</h1>
-            <div class="space-x-4">
-                <a href="/get-usage" class="text-indigo-600 hover:text-indigo-800">
-                    <i class="fas fa-chart-bar"></i> Dashboard
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
+            <h1 class="text-2xl md:text-4xl font-extrabold text-indigo-600 text-center md:text-left">API Key Management
+            </h1>
+            <div class="flex space-x-4">
+                <a href="/get-usage" class="text-indigo-600 hover:text-indigo-800 flex items-center">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    <span class="hidden md:inline">Dashboard</span>
                 </a>
-                <a href="/" class="text-indigo-600 hover:text-indigo-800">
-                    <i class="fas fa-home"></i> Home
+                <a href="/" class="text-indigo-600 hover:text-indigo-800 flex items-center">
+                    <i class="fas fa-home mr-2"></i>
+                    <span class="hidden md:inline">Home</span>
                 </a>
-                <a href="/logout" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                <a href="/logout" class="text-red-600 hover:text-red-800 flex items-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    <span class="hidden md:inline">Logout</span>
                 </a>
             </div>
         </div>
 
         <!-- API Keys List -->
-        <div class="bg-gray-100 rounded-lg p-6 shadow-md fade-in">
+        <div class="bg-gray-100 rounded-lg p-4 md:p-6 shadow-md fade-in">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Active API Keys</h2>
-            <div class="overflow-x-auto">
+
+            <!-- Desktop View -->
+            <div class="hidden md:block overflow-x-auto custom-scrollbar">
                 <table class="w-full table-auto">
                     <thead>
                         <tr class="bg-indigo-50">
@@ -79,7 +149,7 @@
                                 </button>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-700">{{ key.created_at }}</td>
-                            <td class="px-4 py-3 text-sm space-x-2">
+                            <td class="px-4 py-3 text-sm">
                                 <button onclick="revokeKey('{{ key.key }}')" class="text-red-600 hover:text-red-800">
                                     <i class="fas fa-trash"></i> Revoke
                                 </button>
@@ -89,12 +159,59 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile View -->
+            <div class="md:hidden space-y-4">
+                {% for key in api_keys %}
+                <div class="mobile-card hover-scale">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="mobile-card-label">Phone:</span>
+                        <span class="mobile-card-value">{{ key.phone }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="mobile-card-label">API Key:</span>
+                        <span class="mobile-card-value break-all">{{ key.key }}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="mobile-card-label">Usage:</span>
+                        <div class="flex items-center">
+                            <span id="usage_mobile_{{ key.key }}" class="mobile-card-value">{{ key.usage }}/{{ key.limit
+                                }}</span>
+                            <button onclick="resetUsage('{{ key.key }}')"
+                                class="ml-2 text-green-600 hover:text-green-800">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="mobile-card-label">Limit:</span>
+                        <div class="flex items-center">
+                            <span id="limit_mobile_{{ key.key }}" class="mobile-card-value">{{ key.limit }}</span>
+                            <button onclick="showEditLimit('{{ key.key }}', {{ key.limit }})"
+                                class="ml-2 text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <span class="mobile-card-label">Created At:</span>
+                        <span class="mobile-card-value">{{ key.created_at }}</span>
+                    </div>
+                    <div class="flex justify-end">
+                        <button onclick="revokeKey('{{ key.key }}')"
+                            class="bg-red-100 text-red-600 px-3 py-1 rounded-lg hover:bg-red-200">
+                            <i class="fas fa-trash mr-1"></i> Revoke
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
     <!-- Edit Limit Modal -->
-    <div id="editLimitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-96">
+    <div id="editLimitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm mx-auto">
             <h3 class="text-lg font-semibold mb-4">Edit Token Limit</h3>
             <input type="number" id="newLimit" class="w-full px-3 py-2 border rounded mb-4"
                 placeholder="Enter new limit">
@@ -111,6 +228,7 @@
     </div>
 
     <script>
+        // 保持原有JavaScript代码不变
         function showEditLimit(apiKey, currentLimit) {
             document.getElementById('editLimitModal').style.display = 'flex';
             document.getElementById('newLimit').value = currentLimit;
@@ -147,6 +265,7 @@
                 }
 
                 document.getElementById(`limit_${apiKey}`).textContent = newLimit;
+                document.getElementById(`limit_mobile_${apiKey}`).textContent = newLimit;
                 closeEditModal();
             } catch (error) {
                 alert('Error updating limit: ' + error.message);
@@ -169,6 +288,7 @@
                     throw new Error('Failed to reset usage');
                 }
                 document.getElementById(`usage_${apiKey}`).textContent = '0';
+                document.getElementById(`usage_mobile_${apiKey}`).textContent = '0';
             } catch (error) {
                 alert('Error resetting usage: ' + error.message);
             }

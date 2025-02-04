@@ -50,7 +50,10 @@ async def login(request: Request):
     if verify_admin(username, password):
         request.session["authenticated"] = True
         request.session["is_admin"] = True
-        return {"status": "success"}
+        accept = request.headers.get("accept", "")
+        if "application/json" in accept:
+            return {"status": "success"}
+        return RedirectResponse(url="/get-usage", status_code=303)
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 

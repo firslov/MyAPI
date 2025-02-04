@@ -9,9 +9,10 @@ def login_required(func):
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
         if not request.session.get("authenticated"):
-            if request.headers.get("accept") == "application/json":
+            accept = request.headers.get("accept", "")
+            if "application/json" in accept:
                 raise HTTPException(status_code=401, detail="Authentication required")
-            return RedirectResponse(url="/login")
+            return RedirectResponse(url="/login", status_code=303)
         return await func(request, *args, **kwargs)
 
     return wrapper
@@ -23,9 +24,10 @@ def admin_required(func):
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):
         if not request.session.get("is_admin"):
-            if request.headers.get("accept") == "application/json":
+            accept = request.headers.get("accept", "")
+            if "application/json" in accept:
                 raise HTTPException(status_code=403, detail="Admin privileges required")
-            return RedirectResponse(url="/login")
+            return RedirectResponse(url="/login", status_code=303)
         return await func(request, *args, **kwargs)
 
     return wrapper

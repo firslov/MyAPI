@@ -84,10 +84,16 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ username, password }),
+                    redirect: 'follow'
                 });
 
-                if (response.ok) {
-                    window.location.href = '/get-usage';
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        window.location.href = '/get-usage';
+                    }
                 } else {
                     const data = await response.json();
                     errorMessage.textContent = data.detail || 'Login failed';

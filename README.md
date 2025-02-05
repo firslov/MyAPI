@@ -12,17 +12,20 @@
 ## 快速开始
 
 1. 安装依赖
+
 ```bash
 pip install -r requirements.txt
 ```
 
 2. 配置环境变量
+
 ```bash
 export ENV=production  # 生产环境必须
 export SESSION_SECRET_KEY=your-secure-key  # 生产环境必须
 ```
 
 3. 运行服务
+
 ```bash
 python -m app.main
 ```
@@ -43,6 +46,7 @@ python -m app.main
 ## 配置文件
 
 1. api_keys_usage.json - API密钥配置
+
 ```json
 {
   "api-key": {
@@ -54,6 +58,7 @@ python -m app.main
 ```
 
 2. llm_servers_list.json - LLM服务器配置
+
 ```json
 {
   "server-name": {
@@ -61,6 +66,20 @@ python -m app.main
     "model": ["model1", "model2"],
     "apikey": "optional-api-key"
   }
+}
+```
+
+3. serve_models_list.json - Serve模型列表
+
+```json
+{
+    "models": [
+        "deepseek-chat",
+        "Baichuan4",
+        "Baichuan4-Air",
+        "Baichuan4-Turbo",
+        "moonshot-v1-8k"
+    ]
 }
 ```
 

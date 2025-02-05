@@ -29,6 +29,40 @@ def get_services(request: Request) -> tuple[LLMService, ApiService]:
     return app.llm_service, app.api_service
 
 
+@router.get("/get-models")
+async def get_models():
+    """获取可用的模型列表"""
+    try:
+        # 检查文件是否存在
+        if not os.path.exists(settings.SERVE_MODELS_FILE):
+            raise FileNotFoundError(
+                f"Models configuration file not found at {settings.SERVE_MODELS_FILE}"
+            )
+
+        # 读取JSON文件
+        with open(settings.SERVE_MODELS_FILE, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        # 验证JSON格式
+        if not isinstance(config, dict) or "models" not in config:
+            raise ValueError("Invalid models configuration format")
+
+        return {"models": config["models"]}
+
+    except FileNotFoundError as e:
+        # 文件不存在时的错误处理
+        raise HTTPException(status_code=500, detail=f"Configuration error: {str(e)}")
+    except json.JSONDecodeError as e:
+        # JSON解析错误的处理
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid JSON format in configuration file: {str(e)}",
+        )
+    except Exception as e:
+        # 其他错误的处理
+        raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
+
+
 @router.get("/")
 async def home():
     """首页"""

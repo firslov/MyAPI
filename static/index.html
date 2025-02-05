@@ -9,9 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- 保持原有JavaScript不变 -->
     <script>
-        // 保持原有JavaScript代码不变
         async function generateApiKey() {
             const phone = document.getElementById('phone_input').value;
             if (!phone) {
@@ -80,6 +78,44 @@
                 messageArea.classList.remove('fade-in');
             }, 3000);
         }
+
+        async function loadModels() {
+            try {
+                const response = await fetch('/get-models');
+                const data = await response.json();
+                const modelList = document.getElementById('model_list');
+                modelList.innerHTML = '';
+
+                data.models.forEach(model => {
+                    const div = document.createElement('div');
+                    div.className = 'model-item';
+                    div.textContent = model;
+                    modelList.appendChild(div);
+                });
+
+                // 修改高度计算逻辑
+                const modelCount = data.models.length;
+                const itemHeight = 48; // 每个model-item的高度（包括padding和border）
+                const maxVisibleItems = 6; // 最多显示的项目数（用于视觉显示，不限制实际内容）
+                const maxHeight = maxVisibleItems * itemHeight; // 固定显示区域的最大高度
+
+                // 设置固定的最大显示高度
+                document.documentElement.style.setProperty('--model-list-max-height', `${maxHeight}px`);
+
+                // 如果有更多项目，添加滚动样式
+                if (modelCount > maxVisibleItems) {
+                    const modelListElement = document.querySelector('.model-list');
+                    if (modelListElement) {
+                        modelListElement.classList.add('scrollable');
+                    }
+                }
+            } catch (error) {
+                console.error('Loading models failed:', error);
+            }
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', loadModels);
     </script>
 
     <style>
@@ -158,19 +194,45 @@
 
         .model-list {
             max-height: 0;
-            overflow: hidden;
+            overflow-y: hidden;
             transition: max-height 0.3s ease-out;
+            background-color: white;
+            border-radius: 0.5rem;
+        }
+
+        .model-list.scrollable {
+            overflow-y: auto;
         }
 
         .model-list-container:hover .model-list {
-            max-height: 600px;
+            max-height: var(--model-list-max-height, 288px);
             transition: max-height 0.5s ease-in;
+        }
+
+        /* 优化滚动条样式 */
+        .model-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .model-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+
+        .model-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 2px;
+        }
+
+        .model-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         .model-item {
             padding: 0.75rem;
             border-bottom: 1px solid #e5e7eb;
             transition: background-color 0.2s;
+            cursor: pointer;
         }
 
         .model-item:last-child {
@@ -179,6 +241,12 @@
 
         .model-item:hover {
             background-color: #f3f4f6;
+        }
+
+        /* 确保最后一个项目的边框圆角 */
+        .model-list .model-item:last-child {
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
         }
 
         /* 文本截断和展开 */
@@ -294,19 +362,8 @@
                     <i class="fas fa-cube text-indigo-500 text-xl mr-3"></i>
                     <span class="text-lg font-semibold text-gray-800">Model</span>
                 </div>
-                <div class="model-list bg-white rounded-lg shadow-sm">
-                    <div class="model-item">deepseek-chat</div>
-                    <div class="model-item">glm-4-plus</div>
-                    <div class="model-item">glm-4-air</div>
-                    <div class="model-item">glm-4-airx</div>
-                    <div class="model-item">glm-4-flash</div>
-                    <div class="model-item">glm-4-flashx</div>
-                    <div class="model-item">glm-zero-preview</div>
-                    <div class="model-item">Baichuan4</div>
-                    <div class="model-item">Baichuan4-Air</div>
-                    <div class="model-item">Baichuan4-Turbo</div>
-                    <div class="model-item">doubao-lite-32k(personal)</div>
-                    <div class="model-item">doubao-pro-32k(personal)</div>
+                <div class="model-list bg-white rounded-lg shadow-sm" id="model_list">
+                    <!-- Models will be loaded dynamically -->
                 </div>
             </div>
 

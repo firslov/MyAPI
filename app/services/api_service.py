@@ -114,6 +114,7 @@ class ApiService:
         stats.api_keys = [
             {
                 "key": key[-6:],
+                "phone": info.phone,
                 "usage": info.usage,
                 "limit": info.limit,
                 "reqs": info.reqs,

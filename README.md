@@ -1,6 +1,6 @@
 # API Service
 
-一个高性能的API请求中转系统。
+一个轻量化的API请求中转系统。
 
 ## 功能特点
 
@@ -35,8 +35,13 @@ python -m app.main
 ### 管理接口
 
 - `GET /` - 首页,生成API密钥
+![index](./src/index.jpg)
+
 - `GET /manage-keys` - API密钥管理
+![manage](./src/manage.jpg)
+
 - `GET /get-usage` - 用量统计
+![dashboard](./src/dashboard.jpg)
 
 ### LLM接口
 
@@ -73,13 +78,13 @@ python -m app.main
 
 ```json
 {
-    "models": [
-        "deepseek-chat",
-        "Baichuan4",
-        "Baichuan4-Air",
-        "Baichuan4-Turbo",
-        "moonshot-v1-8k"
-    ]
+  "models": [
+    "deepseek-chat",
+    "Baichuan4",
+    "Baichuan4-Air",
+    "Baichuan4-Turbo",
+    "moonshot-v1-8k"
+  ]
 }
 ```
 

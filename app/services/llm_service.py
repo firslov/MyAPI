@@ -27,26 +27,39 @@ class LLMService:
         """初始化LLM资源
 
         Args:
-            servers_data: 服务器配置数据
+            servers_data: 服务器配置数据，model字段为key-value形式，key为客户使用的模型名，value为实际转发的模型名
         """
         self.app_state.llm_servers = servers_data
         self.app_state.cloud_models.clear()
         self.app_state.model_mapping.clear()
+        self.app_state.model_name_mapping = {}  # 存储模型名称映射关系
 
         for server, config in servers_data.items():
-            models = (
-                [config["model"]]
-                if isinstance(config["model"], str)
-                else config["model"]
-            )
-            for model in models:
-                self.app_state.model_mapping[model].append(server)
-                if "apikey" in config:
-                    self.app_state.cloud_models[model] = config["apikey"]
+            if isinstance(config["model"], dict):
+                for client_model, target_model in config["model"].items():
+                    self.app_state.model_mapping[client_model].append(server)
+                    self.app_state.model_name_mapping[client_model] = target_model
+                    if "apikey" in config:
+                        self.app_state.cloud_models[client_model] = config["apikey"]
+            else:
+                # 兼容旧格式
+                models = (
+                    [config["model"]]
+                    if isinstance(config["model"], str)
+                    else config["model"]
+                )
+                for model in models:
+                    self.app_state.model_mapping[model].append(server)
+                    if "apikey" in config:
+                        self.app_state.cloud_models[model] = config["apikey"]
 
     async def forward_request(
         self, target: str, data: Dict, headers: Dict, stream: bool = False
     ) -> Union[httpx.Response, Dict[str, Any]]:
+        """转发请求到目标服务器，如果model有映射关系，则使用映射后的模型名"""
+        if "model" in data and data["model"] in self.app_state.model_name_mapping:
+            data = data.copy()
+            data["model"] = self.app_state.model_name_mapping[data["model"]]
         """转发请求到目标服务器"""
         try:
             if stream:

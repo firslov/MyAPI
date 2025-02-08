@@ -20,7 +20,9 @@ class LLMServer(BaseModel):
     """LLM服务器配置模型"""
 
     url: str = Field(description="服务器URL")
-    model: str | List[str] = Field(description="支持的模型")
+    model: Dict[str, str] | str | List[str] = Field(
+        description="支持的模型，可以是字典(key为客户端使用的模型名，value为实际转发的模型名)、字符串或列表"
+    )
     apikey: Optional[str] = Field(default=None, description="API密钥")
 
 
@@ -35,6 +37,9 @@ class AppState(BaseModel):
     )
     model_mapping: Dict[str, List] = Field(
         default_factory=lambda: defaultdict(list), description="模型到服务器的映射"
+    )
+    model_name_mapping: Dict[str, str] = Field(
+        default_factory=dict, description="客户端模型名到实际模型名的映射"
     )
     api_usage: Dict[str, ApiKeyUsage] = Field(
         default_factory=dict, description="API使用情况"

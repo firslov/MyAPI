@@ -56,8 +56,12 @@ python -m app.main
 {
   "api-key": {
     "usage": 0,
-    "limit": 1000000,
-    "phone": "phone-number"
+    "limit": 300000,
+    "reqs": 0,
+    "code_reqs": 0,
+    "created_at": "2024-02-04 12:00:00",
+    "last_used": null,
+    "phone": "139xxxxxxxx"
   }
 }
 ```
@@ -66,9 +70,11 @@ python -m app.main
 
 ```json
 {
-  "server-name": {
-    "url": "http://example.com",
-    "model": ["model1", "model2"],
+  "server-url": {
+    "model": {
+      "public-model-name": "actual-model-name"
+    },
+    "device": "device-info",
     "apikey": "optional-api-key"
   }
 }
@@ -80,16 +86,8 @@ python -m app.main
 {
   "models": [
     "deepseek-chat",
-    "Baichuan4",
-    "Baichuan4-Air",
-    "Baichuan4-Turbo",
+    "deepseek-reasoner",
     "moonshot-v1-8k"
   ]
 }
 ```
-
-## 部署说明
-
-1. 使用Nginx配置HTTPS和反向代理
-2. 设置安全的SESSION_SECRET_KEY
-3. 启用生产环境配置(ENV=production)

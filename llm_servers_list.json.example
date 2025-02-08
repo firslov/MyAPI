@@ -1,10 +1,9 @@
 {
-    "server-name": {
-        "url": "http://example.com",
-        "model": [
-            "model1",
-            "model2"
-        ],
-        "apikey": "optional-api-key"
-    }
+  "server-url": {
+    "model": {
+      "public-model-name": "actual-model-name"
+    },
+    "device": "device-info",
+    "apikey": "optional-api-key"
+  }
 }

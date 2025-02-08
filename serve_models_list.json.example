@@ -1,0 +1,7 @@
+{
+    "models": [
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "moonshot-v1-8k"
+    ]
+}

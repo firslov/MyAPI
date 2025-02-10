@@ -103,7 +103,12 @@ def create_application() -> FastAPI:
     # 添加受信任主机中间件
     fastapi_app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["api.aihao.world", "localhost", "localhost:8087"],
+        allowed_hosts=[
+            "api.aihao.world",
+            "localhost",
+            "localhost:8087",
+            "0.0.0.0:8087",
+        ],
     )
 
     # 配置CORS
@@ -111,6 +116,7 @@ def create_application() -> FastAPI:
         "http://localhost:8087",
         "https://api.aihao.world",
         "http://api.aihao.world",
+        "http://0.0.0.0:8087",
     ]
     fastapi_app.add_middleware(
         CORSMiddleware,

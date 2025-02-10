@@ -7,8 +7,8 @@ from collections import defaultdict
 class ApiKeyUsage(BaseModel):
     """API密钥使用情况模型"""
 
-    usage: int = Field(default=0, description="当前使用量")
-    limit: int = Field(description="使用限额")
+    usage: float = Field(default=0, description="当前使用量")
+    limit: float = Field(description="使用限额")
     reqs: int = Field(default=0, description="聊天请求次数")
     code_reqs: int = Field(default=0, description="代码请求次数")
     created_at: Optional[str] = Field(default=None, description="创建时间")

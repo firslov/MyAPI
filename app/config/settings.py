@@ -43,6 +43,9 @@ class Settings(BaseSettings):
         "timeout": httpx.Timeout(timeout=REQUEST_TIMEOUT, read=READ_TIMEOUT),
     }
 
+    # 其他
+    TOKENIZER_MODEL: str = "gpt-3.5-turbo"  # 默认分词器模型
+
     class Config:
         case_sensitive = True
 

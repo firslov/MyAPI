@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from app.models.api_models import ApiKeyUsage, UsageStats
 from app.utils.helpers import generate_token, get_current_time, log_api_usage
 from app.config.settings import settings
+import tiktoken
 
 
 class ApiService:
@@ -10,6 +11,7 @@ class ApiService:
 
     def __init__(self):
         self.api_usage: Dict[str, ApiKeyUsage] = {}
+        self.encoding = tiktoken.encoding_for_model(settings.TOKENIZER_MODEL)
 
     def validate_api_key(self, api_key: str) -> None:
         """验证API密钥
@@ -64,28 +66,13 @@ class ApiService:
         if is_chat:
             usage.reqs += 1
             usage.usage += sum(
-                len(m.get("content", "")) for m in request_data.get("messages", [])
+                len(self.encoding.encode(m.get("content", "")))
+                for m in request_data.get("messages", [])
             )
         else:
             usage.code_reqs += 1
 
-        log_api_usage(api_key, usage.dict())
-
-    def update_final_usage(self, api_key: str, response_data: Dict) -> None:
-        """更新最终使用情况(基于响应数据)
-
-        Args:
-            api_key: API密钥
-            response_data: 响应数据
-        """
-        if "usage" in response_data:
-            usage = self.api_usage[api_key]
-            tokens = (
-                response_data["usage"]["prompt_tokens"]
-                + response_data["usage"]["completion_tokens"]
-            )
-            usage.usage += int(tokens * 1.25)
-            log_api_usage(api_key, usage.dict())
+        # log_api_usage(api_key, usage.dict())
 
     def get_usage_stats(self) -> UsageStats:
         """获取使用统计信息

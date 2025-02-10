@@ -17,7 +17,7 @@ from app.middleware.auth import admin_required, verify_admin
 from app.models.api_models import ApiKeyUsage
 from app.services.api_service import ApiService
 from app.services.llm_service import LLMService
-from app.utils.helpers import get_current_time
+from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
@@ -260,29 +260,18 @@ async def proxy_handler(request: Request):
                 client_stream = await llm_service.forward_request(
                     target, req_data, headers, stream=True
                 )
-                last_data_chunk = None  # 记录最后一个数据块
+                num_tokens = 0
 
                 async with client_stream as response:
                     async for chunk in response.aiter_text():
-                        if (
-                            chunk.strip() == "data: [DONE]"
-                            and last_data_chunk
-                            and is_chat
-                        ):
-                            # 当遇到[DONE]时，使用前一个数据块的usage信息
-                            try:
-                                chunk_data = json.loads(
-                                    last_data_chunk.replace("data: ", "")
-                                )
-                                if "usage" in chunk_data and chunk_data["usage"]:
-                                    api_service.update_final_usage(api_key, chunk_data)
-                            except (json.JSONDecodeError, KeyError):
-                                pass
-                        elif chunk.strip().startswith(
-                            "data: {"
-                        ):  # 只记录有效的JSON数据块
-                            last_data_chunk = chunk
+                        num_tokens += chunk.count(
+                            'data: {"choices":[{"delta":{"content":'
+                        )
                         yield chunk
+
+                api_service.api_usage[api_key].usage += num_tokens
+
+            log_api_usage(api_key, api_service.api_usage[api_key].dict())
 
             return StreamingResponse(
                 stream_wrapper(),
@@ -297,13 +286,20 @@ async def proxy_handler(request: Request):
         response_text = await llm_service.forward_request(target, req_data, headers)
 
         try:
-            response_data = json.loads(response_text)
+            response = json.loads(response_text)
 
             # 更新最终用量
             if is_chat:
-                api_service.update_final_usage(api_key, response_data)
+                if "usage" in response:
+                    tokens = (
+                        response["usage"]["prompt_tokens"]
+                        + response["usage"]["completion_tokens"]
+                    )
+                    api_service.api_usage[api_key].usage += tokens
 
-            return JSONResponse(response_data)
+            log_api_usage(api_key, api_service.api_usage[api_key].dict())
+
+            return JSONResponse(response)
         except json.JSONDecodeError as e:
             return JSONResponse(
                 {"error": "Invalid response from upstream server", "message": str(e)},

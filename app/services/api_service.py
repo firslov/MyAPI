@@ -50,27 +50,21 @@ class ApiService:
         )
         return new_key
 
-    def update_usage(
-        self, api_key: str, request_data: Dict, is_chat: bool = True
-    ) -> None:
+    def update_usage(self, api_key: str, request_data: Dict) -> None:
         """更新API使用情况
 
         Args:
             api_key: API密钥
             request_data: 请求数据
-            is_chat: 是否为聊天请求
         """
         usage = self.api_usage[api_key]
         usage.last_used = get_current_time()
 
-        if is_chat:
-            usage.reqs += 1
-            usage.usage += sum(
-                len(self.encoding.encode(m.get("content", "")))
-                for m in request_data.get("messages", [])
-            )
-        else:
-            usage.code_reqs += 1
+        usage.reqs += 1
+        usage.usage += sum(
+            len(self.encoding.encode(m.get("content", "")))
+            for m in request_data.get("messages", [])
+        )
 
         # log_api_usage(api_key, usage.dict())
 
@@ -85,7 +79,6 @@ class ApiService:
             total_usage=sum(info.usage for info in self.api_usage.values()),
             total_entries=len(self.api_usage),
             total_reqs=sum(info.reqs for info in self.api_usage.values()),
-            total_code_reqs=sum(info.code_reqs for info in self.api_usage.values()),
         )
 
         # 统计不同使用量区间的数量
@@ -105,7 +98,6 @@ class ApiService:
                 "usage": info.usage,
                 "limit": info.limit,
                 "reqs": info.reqs,
-                "code_reqs": info.code_reqs,
                 "created_at": info.created_at,
                 "last_used": info.last_used,
             }
@@ -122,4 +114,3 @@ class ApiService:
         for key in self.api_usage:
             self.api_usage[key].usage = 0
             self.api_usage[key].reqs = 0
-            self.api_usage[key].code_reqs = 0

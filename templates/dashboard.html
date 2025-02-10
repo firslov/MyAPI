@@ -143,12 +143,6 @@
                         </span>
                         <span class="text-base md:text-lg font-bold text-indigo-600">{{ total_usage }}</span>
                     </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-code text-indigo-400 mr-2"></i> Total Code_reqs
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ total_code_reqs }}</span>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -186,9 +180,6 @@
                                 Reqs</th>
                             <th
                                 class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Code Reqs</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
                                 Created At</th>
                             <th
                                 class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
@@ -208,8 +199,6 @@
                             </td>
                             <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.reqs }}
                             </td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.code_reqs
-                                }}</td>
                             <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.created_at
                                 or 'N/A' }}</td>
                             <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.last_used

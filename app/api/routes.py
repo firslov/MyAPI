@@ -122,7 +122,6 @@ async def generate_api_key(request: Request):
         usage=0,
         limit=1000000,  # 100万token限额
         reqs=0,
-        code_reqs=0,
         created_at=get_current_time(),
         phone=phone,
     )
@@ -164,7 +163,6 @@ async def reset_api_key_usage(request: Request):
     if api_key in api_service.api_usage:
         api_service.api_usage[api_key].usage = 0
         api_service.api_usage[api_key].reqs = 0
-        api_service.api_usage[api_key].code_reqs = 0
         return {"status": "success"}
 
     raise HTTPException(status_code=404, detail="API key not found")
@@ -246,8 +244,7 @@ async def proxy_handler(request: Request):
     target = f"{target_server}{request.url.path.replace('/v1', '', 1)}"
 
     # 更新初始用量
-    is_chat = "chat" in request.url.path
-    api_service.update_usage(api_key, req_data, is_chat)
+    api_service.update_usage(api_key, req_data)
 
     # 构造请求头
     headers = llm_service.get_auth_header(model, api_key)
@@ -288,13 +285,12 @@ async def proxy_handler(request: Request):
             response = json.loads(response_text)
 
             # 更新最终用量
-            if is_chat:
-                if "usage" in response:
-                    tokens = (
-                        response["usage"]["prompt_tokens"]
-                        + response["usage"]["completion_tokens"]
-                    )
-                    api_service.api_usage[api_key].usage += tokens
+            if "usage" in response:
+                tokens = (
+                    response["usage"]["prompt_tokens"]
+                    + response["usage"]["completion_tokens"]
+                )
+                api_service.api_usage[api_key].usage += tokens
 
             return JSONResponse(response)
         except json.JSONDecodeError as e:

@@ -83,5 +83,4 @@ def log_api_usage(api_key: str, usage_info: Dict) -> None:
         f"API_key: {api_key[-6:]} | "
         f"剩余Token: {usage_info['limit'] - usage_info['usage']} | "
         f"请求次数: {usage_info['reqs']} | "
-        f"Code请求次数: {usage_info['code_reqs']}"
     )

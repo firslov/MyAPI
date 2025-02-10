@@ -255,12 +255,13 @@ async def proxy_handler(request: Request):
     try:
         # 流式响应处理
         if req_data.get("stream", False):
+            num_tokens = 0
 
             async def stream_wrapper():
+                nonlocal num_tokens
                 client_stream = await llm_service.forward_request(
                     target, req_data, headers, stream=True
                 )
-                num_tokens = 0
 
                 async with client_stream as response:
                     async for chunk in response.aiter_text():
@@ -270,8 +271,6 @@ async def proxy_handler(request: Request):
                         yield chunk
 
                 api_service.api_usage[api_key].usage += num_tokens
-
-            log_api_usage(api_key, api_service.api_usage[api_key].dict())
 
             return StreamingResponse(
                 stream_wrapper(),
@@ -297,8 +296,6 @@ async def proxy_handler(request: Request):
                     )
                     api_service.api_usage[api_key].usage += tokens
 
-            log_api_usage(api_key, api_service.api_usage[api_key].dict())
-
             return JSONResponse(response)
         except json.JSONDecodeError as e:
             return JSONResponse(
@@ -310,3 +307,5 @@ async def proxy_handler(request: Request):
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
+    finally:
+        log_api_usage(api_key, api_service.api_usage[api_key].dict())

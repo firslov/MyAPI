@@ -46,7 +46,7 @@ python -m app.main
 ### LLM接口
 
 - `POST /v1/chat/completions` - 聊天补全
-- `POST /v1/completions` - 文本补全
+- `POST /v1/completions` - 文本补全（待补充）
 
 ## 配置文件
 
@@ -58,7 +58,6 @@ python -m app.main
     "usage": 0,
     "limit": 300000,
     "reqs": 0,
-    "code_reqs": 0,
     "created_at": "2024-02-04 12:00:00",
     "last_used": null,
     "phone": "139xxxxxxxx"

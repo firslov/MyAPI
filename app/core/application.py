@@ -1,24 +1,23 @@
 import asyncio
-from datetime import datetime, timedelta
 import signal
 import sys
+from contextlib import asynccontextmanager
 from typing import Set
+
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 
 from app.config.settings import settings
-from app.services.llm_service import LLMService
-from app.services.api_service import ApiService
 from app.models.api_models import ApiKeyUsage
+from app.services.api_service import ApiService
+from app.services.llm_service import LLMService
 from app.utils.helpers import load_json_file, save_json_file, logger
 
 
 class Application:
-    """应用程序核心类"""
+    """应用程序核心类，负责管理应用的生命周期和核心服务"""
 
     def __init__(self):
         self.llm_service = LLMService()
@@ -108,6 +107,7 @@ def create_application() -> FastAPI:
             "localhost",
             "localhost:8087",
             "0.0.0.0:8087",
+            "0.0.0.0",
         ],
     )
 

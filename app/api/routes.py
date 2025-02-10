@@ -1,22 +1,22 @@
-from fastapi import APIRouter, Request, Response, HTTPException, Depends
+import json
+import os
+from typing import Dict, Tuple
+
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import (
-    StreamingResponse,
     FileResponse,
     HTMLResponse,
     JSONResponse,
     RedirectResponse,
+    StreamingResponse,
 )
 from fastapi.templating import Jinja2Templates
-import os
-import json
-from typing import Dict, Optional
-from datetime import datetime
 
 from app.config.settings import settings
-from app.services.llm_service import LLMService
-from app.services.api_service import ApiService
-from app.middleware.auth import login_required, admin_required, verify_admin
+from app.middleware.auth import admin_required, verify_admin
 from app.models.api_models import ApiKeyUsage
+from app.services.api_service import ApiService
+from app.services.llm_service import LLMService
 from app.utils.helpers import get_current_time
 
 router = APIRouter()
@@ -294,13 +294,21 @@ async def proxy_handler(request: Request):
             )
 
         # 普通响应处理
-        response_data = await llm_service.forward_request(target, req_data, headers)
+        response_text = await llm_service.forward_request(target, req_data, headers)
 
-        # 更新最终用量
-        if is_chat:
-            api_service.update_final_usage(api_key, response_data)
+        try:
+            response_data = json.loads(response_text)
 
-        return JSONResponse(response_data)
+            # 更新最终用量
+            if is_chat:
+                api_service.update_final_usage(api_key, response_data)
+
+            return JSONResponse(response_data)
+        except json.JSONDecodeError as e:
+            return JSONResponse(
+                {"error": "Invalid response from upstream server", "message": str(e)},
+                status_code=500,
+            )
 
     except HTTPException as e:
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)

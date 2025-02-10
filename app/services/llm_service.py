@@ -1,10 +1,12 @@
-from typing import Union, Any, Dict, List, Optional
+import json
+from typing import Dict, Optional, Union
+
 import httpx
 from fastapi import HTTPException
+
+from app.config.settings import settings
 from app.models.api_models import AppState
 from app.utils.helpers import logger
-from app.config.settings import settings
-from httpx import AsyncClient
 
 
 class LLMService:
@@ -55,12 +57,11 @@ class LLMService:
 
     async def forward_request(
         self, target: str, data: Dict, headers: Dict, stream: bool = False
-    ) -> Union[httpx.Response, Dict[str, Any]]:
+    ) -> Union[httpx.Response, str]:
         """转发请求到目标服务器，如果model有映射关系，则使用映射后的模型名"""
         if "model" in data and data["model"] in self.app_state.model_name_mapping:
             data = data.copy()
             data["model"] = self.app_state.model_name_mapping[data["model"]]
-        """转发请求到目标服务器"""
         try:
             if stream:
                 # 直接返回 Response 对象，不要 await
@@ -74,25 +75,26 @@ class LLMService:
             )
             response.raise_for_status()
 
-            # 读取响应数据并关闭连接
-            json_data = await response.json()
-            await response.aclose()
-            return json_data
+            return response.text
 
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Upstream error: {e.response.status_code}")
+        except httpx.HTTPStatusError as exc:
+            logger.error(f"Upstream error: {exc.response.status_code}")
             if stream:
-                return e.response
-            raise HTTPException(
-                status_code=e.response.status_code, detail=f"Upstream error: {str(e)}"
-            )
-        except Exception as e:
-            logger.error(f"Request failed: {str(e)}")
+                return exc.response
+            error_detail = {
+                "error": f"LLM_SERVER 响应状态码 {exc.response.status_code}",
+                "message": str(exc),
+            }
+            return json.dumps(error_detail)
+        except Exception as exc:
+            logger.error(f"Request failed: {str(exc)}")
             if stream:
-                return httpx.Response(status_code=500, text=str(e))
-            raise HTTPException(
-                status_code=500, detail=f"Internal server error: {str(e)}"
-            )
+                return httpx.Response(status_code=500, text=str(exc))
+            error_detail = {
+                "error": "与 LLM_SERVER 通信时出现网络错误",
+                "message": str(exc),
+            }
+            return json.dumps(error_detail)
 
     def get_target_server(self, model: str) -> str:
         """获取目标服务器

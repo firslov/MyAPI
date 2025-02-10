@@ -268,6 +268,7 @@ async def proxy_handler(request: Request):
                         yield chunk
 
                 api_service.api_usage[api_key].usage += num_tokens
+                log_api_usage(api_key, api_service.api_usage[api_key].dict())
 
             return StreamingResponse(
                 stream_wrapper(),
@@ -292,6 +293,8 @@ async def proxy_handler(request: Request):
                 )
                 api_service.api_usage[api_key].usage += tokens
 
+            log_api_usage(api_key, api_service.api_usage[api_key].dict())
+
             return JSONResponse(response)
         except json.JSONDecodeError as e:
             return JSONResponse(
@@ -303,5 +306,3 @@ async def proxy_handler(request: Request):
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
-    finally:
-        log_api_usage(api_key, api_service.api_usage[api_key].dict())

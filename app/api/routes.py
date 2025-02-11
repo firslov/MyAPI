@@ -217,15 +217,17 @@ async def manage_keys(request: Request):
 
 
 @router.options("/v1/chat/completions")
+@router.options("/chat/completions")
 @router.options("/v1/completions")
+@router.options("/completions")
 async def options_handler():
     """处理 OPTIONS 请求"""
     return Response(status_code=200)
 
 
 @router.post("/v1/chat/completions")
-@router.post("/v1/completions")
-async def proxy_handler(request: Request):
+@router.post("/chat/completions")
+async def proxy_handler_chat(request: Request):
     """请求转发处理"""
     llm_service, api_service = get_services(request)
 
@@ -295,6 +297,68 @@ async def proxy_handler(request: Request):
 
             log_api_usage(api_key, api_service.api_usage[api_key].dict())
 
+            return JSONResponse(response)
+        except json.JSONDecodeError as e:
+            return JSONResponse(
+                {"error": "Invalid response from upstream server", "message": str(e)},
+                status_code=500,
+            )
+
+    except HTTPException as e:
+        return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
+    except Exception as e:
+        return JSONResponse({"error": "Internal server error"}, status_code=500)
+
+
+@router.post("/v1/completions")
+@router.post("/completions")
+async def proxy_handler_completions(request: Request):
+    """请求转发处理"""
+    llm_service, api_service = get_services(request)
+
+    # 身份验证
+    auth_header = request.headers.get("Authorization", "")
+    _, _, api_key = auth_header.partition(" ")
+    api_service.validate_api_key(api_key)
+
+    # 请求处理
+    req_data = await request.json()
+    model = req_data.get("model")
+
+    # 获取目标服务器
+    target_server = llm_service.get_target_server(model)
+    target = f"{target_server}{request.url.path.replace('/v1', '', 1)}"
+
+    # 构造请求头
+    headers = llm_service.get_auth_header(model, api_key)
+
+    try:
+        # 流式响应处理
+        if req_data.get("stream", False):
+
+            async def stream_wrapper():
+                client_stream = await llm_service.forward_request(
+                    target, req_data, headers, stream=True
+                )
+
+                async with client_stream as response:
+                    async for chunk in response.aiter_text():
+                        yield chunk
+
+            return StreamingResponse(
+                stream_wrapper(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            )
+
+        # 普通响应处理
+        response_text = await llm_service.forward_request(target, req_data, headers)
+
+        try:
+            response = json.loads(response_text)
             return JSONResponse(response)
         except json.JSONDecodeError as e:
             return JSONResponse(

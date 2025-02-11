@@ -37,11 +37,19 @@ class Settings(BaseSettings):
     SESSION_COOKIE_SECURE: bool = ENV == "production"  # 仅在生产环境使用HTTPS
     SESSION_COOKIE_SAMESITE: str = "lax"  # Cookie SameSite策略
 
-    # HTTP客户端配置
-    HTTP_CLIENT_CONFIG: Dict[str, Any] = {
-        "limits": httpx.Limits(max_connections=MAX_CONNECTIONS),
-        "timeout": httpx.Timeout(timeout=REQUEST_TIMEOUT, read=READ_TIMEOUT),
-    }
+    @property
+    def HTTP_CLIENT_CONFIG(self) -> Dict[str, Any]:
+        """HTTP客户端配置"""
+        return {
+            "limits": httpx.Limits(
+                max_connections=self.MAX_CONNECTIONS, max_keepalive_connections=100
+            ),
+            "timeout": httpx.Timeout(
+                timeout=self.REQUEST_TIMEOUT, read=self.READ_TIMEOUT
+            ),
+            "http2": True,
+            "transport": httpx.AsyncHTTPTransport(http2=True),
+        }
 
     # 其他
     TOKENIZER_MODEL: str = "gpt-3.5-turbo"  # 默认分词器模型

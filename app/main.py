@@ -26,4 +26,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8087,
         reload=settings.ENV == "development",  # 只在开发环境启用自动重载
+        reload_dirs=["app"],  # 只监控app目录
+        reload_excludes=["*.pyc", "*.pyo", "*.log"],  # 排除这些文件
+        log_level="info",  # 显示详细日志，包括监控信息
     )

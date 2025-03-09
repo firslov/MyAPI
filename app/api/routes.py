@@ -20,6 +20,32 @@ from app.services.llm_service import LLMService
 from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
+
+@router.get("/models")
+@router.get("/v1/models")
+async def list_models():
+    """Get available models list"""
+    try:
+        with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        
+        models = []
+        for server_url, server_info in config.items():
+            device = server_info.get("device", "unknown")
+            for model_id in server_info.get("model", {}).keys():
+                models.append({
+                    "id": model_id,
+                    "object": "model",
+                    "owned_by": device
+                })
+        
+        return {
+            "object": "list",
+            "data": models
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
+
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 
 

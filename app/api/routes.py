@@ -214,31 +214,29 @@ async def revoke_api_key(request: Request):
 @router.get("/get-usage", response_class=HTMLResponse)
 @admin_required
 async def usage_dashboard(request: Request):
-    """用量统计仪表盘"""
+    """用量统计和管理仪表盘"""
     _, api_service = get_services(request)
     stats = api_service.get_usage_stats()
-    return templates.TemplateResponse(
-        "dashboard.html", {"request": request, **stats.dict()}
-    )
-
-
-@router.get("/manage-keys", response_class=HTMLResponse)
-@admin_required
-async def manage_keys(request: Request):
-    """API密钥管理页面"""
-    _, api_service = get_services(request)
     api_keys = [
         {
             "key": key,
             "phone": info.phone,
             "usage": info.usage,
             "limit": info.limit,
+            "reqs": info.reqs,
             "created_at": info.created_at,
+            "last_used": info.last_used if hasattr(info, "last_used") else "N/A"
         }
         for key, info in api_service.api_usage.items()
     ]
     return templates.TemplateResponse(
-        "apikey_manage.html", {"request": request, "api_keys": api_keys}
+        "dashboard_manage.html", 
+        {
+            "request": request,
+            **stats.dict(),
+            "api_keys": api_keys,
+            "current_time": get_current_time()
+        }
     )
 
 

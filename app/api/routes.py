@@ -21,6 +21,89 @@ from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
 
+@router.get("/get-llm-servers")
+async def get_llm_servers():
+    """获取LLM服务器列表"""
+    try:
+        if not os.path.exists(settings.LLM_SERVERS_FILE):
+            return {}
+            
+        with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading LLM servers: {str(e)}")
+
+@router.post("/update-llm-servers")
+@admin_required
+async def update_llm_servers(request: Request):
+    """更新LLM服务器列表"""
+    try:
+        data = await request.json()
+        action = data.get("action")
+        url = data.get("url")
+        config = data.get("config", {})
+
+        # 解码URL
+        from urllib.parse import unquote
+        url = unquote(url)
+
+        # 读取现有配置
+        if os.path.exists(settings.LLM_SERVERS_FILE):
+            with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
+                servers = json.load(f)
+        else:
+            servers = {}
+
+        # 处理不同操作
+        if action == "add":
+            servers[url] = config
+        elif action == "delete":
+            servers.pop(url, None)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+
+        # 保存配置
+        with open(settings.LLM_SERVERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(servers, f, indent=2)
+
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating LLM servers: {str(e)}")
+
+@router.post("/update-serve-models")
+@admin_required
+async def update_serve_models(request: Request):
+    """更新服务模型列表"""
+    try:
+        data = await request.json()
+        action = data.get("action")
+        model = data.get("model")
+
+        # 读取现有配置
+        if os.path.exists(settings.SERVE_MODELS_FILE):
+            with open(settings.SERVE_MODELS_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        else:
+            config = {"models": []}
+
+        # 处理不同操作
+        if action == "add":
+            if model not in config["models"]:
+                config["models"].append(model)
+        elif action == "delete":
+            if model in config["models"]:
+                config["models"].remove(model)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+
+        # 保存配置
+        with open(settings.SERVE_MODELS_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating serve models: {str(e)}")
+
 @router.get("/models")
 @router.get("/v1/models")
 async def list_models():
@@ -48,12 +131,10 @@ async def list_models():
 
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 
-
 def get_services(request: Request) -> tuple[LLMService, ApiService]:
     """获取服务实例"""
     app = request.app.state.app
     return app.llm_service, app.api_service
-
 
 @router.get("/get-models")
 async def get_models():
@@ -88,18 +169,15 @@ async def get_models():
         # 其他错误的处理
         raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
 
-
 @router.get("/")
 async def home():
     """首页"""
     return FileResponse(os.path.join(settings.STATIC_DIR, "index.html"))
 
-
 @router.get("/login")
 async def login_page(request: Request):
     """登录页面"""
     return templates.TemplateResponse("login.html", {"request": request})
-
 
 @router.post("/login")
 async def login(request: Request):
@@ -118,13 +196,11 @@ async def login(request: Request):
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-
 @router.get("/logout")
 async def logout(request: Request):
     """退出登录"""
     request.session.clear()
     return RedirectResponse(url="/")
-
 
 @router.post("/generate-api-key")
 async def generate_api_key(request: Request):
@@ -154,7 +230,6 @@ async def generate_api_key(request: Request):
 
     return {"api_key": new_key}
 
-
 @router.post("/update-api-key-limit")
 @admin_required
 async def update_api_key_limit(request: Request):
@@ -175,7 +250,6 @@ async def update_api_key_limit(request: Request):
 
     raise HTTPException(status_code=404, detail="API key not found")
 
-
 @router.post("/reset-api-key-usage")
 @admin_required
 async def reset_api_key_usage(request: Request):
@@ -193,7 +267,6 @@ async def reset_api_key_usage(request: Request):
 
     raise HTTPException(status_code=404, detail="API key not found")
 
-
 @router.post("/revoke-api-key")
 @admin_required
 async def revoke_api_key(request: Request):
@@ -209,7 +282,6 @@ async def revoke_api_key(request: Request):
         return {"status": "success"}
 
     raise HTTPException(status_code=404, detail="API key not found")
-
 
 @router.get("/get-usage", response_class=HTMLResponse)
 @admin_required
@@ -239,7 +311,6 @@ async def usage_dashboard(request: Request):
         }
     )
 
-
 @router.options("/v1/chat/completions")
 @router.options("/chat/completions")
 @router.options("/v1/completions")
@@ -247,7 +318,6 @@ async def usage_dashboard(request: Request):
 async def options_handler():
     """处理 OPTIONS 请求"""
     return Response(status_code=200)
-
 
 @router.post("/v1/chat/completions")
 @router.post("/chat/completions")
@@ -332,7 +402,6 @@ async def proxy_handler_chat(request: Request):
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
-
 
 @router.post("/v1/completions")
 @router.post("/completions")

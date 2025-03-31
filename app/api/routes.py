@@ -57,6 +57,16 @@ async def update_llm_servers(request: Request):
         # 处理不同操作
         if action == "add":
             servers[url] = config
+        elif action == "update":
+            old_url = data.get("oldUrl")
+            if old_url and old_url in servers:
+                # 更新服务器配置
+                servers[url] = config
+                if old_url != url:
+                    # 如果URL改变了，删除旧的条目
+                    servers.pop(old_url, None)
+            else:
+                servers[url] = config
         elif action == "delete":
             servers.pop(url, None)
         else:

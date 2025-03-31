@@ -27,7 +27,9 @@ async function loadConfigs() {
             row.innerHTML = '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + url + '</td>' +
                 '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + (config.device || 'N/A') + '</td>' +
                 '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700"><div class="space-y-1">' + models + '</div></td>' +
-                '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">' +
+                '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm space-x-2">' +
+                '<button onclick="showEditServerModal(\'' + encodeURIComponent(url) + '\')" class="text-indigo-600 hover:text-indigo-800" title="Edit">' +
+                '<i class="fas fa-edit"></i></button>' +
                 '<button onclick="deleteServer(\'' + encodeURIComponent(url) + '\')" class="text-red-600 hover:text-red-800" title="Delete">' +
                 '<i class="fas fa-trash"></i></button></td>';
             serversTable.appendChild(row);
@@ -125,6 +127,75 @@ async function deleteServer(url) {
         loadConfigs();
     } catch (error) {
         alert('Error deleting server: ' + error.message);
+    }
+}
+
+// Edit Server Modal
+function showEditServerModal(url) {
+    document.getElementById('editServerUrl').value = url;
+    fetch('/get-llm-servers')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(servers => {
+            const decodedUrl = decodeURIComponent(url);
+            const config = servers[decodedUrl];
+            if (!config) throw new Error('Server config not found');
+            
+            document.getElementById('editServerDevice').value = config.device || '';
+            document.getElementById('editServerApiKey').value = config.apikey || '';
+            document.getElementById('editServerModels').value = JSON.stringify(config.model || {}, null, 2);
+            document.getElementById('editServerModal').style.display = 'flex';
+        })
+        .catch(error => {
+            console.error('Error loading server details:', error);
+            alert('Failed to load server details: ' + error.message);
+        });
+}
+
+function closeEditServerModal() {
+    document.getElementById('editServerModal').style.display = 'none';
+}
+
+async function updateServer() {
+    const oldUrl = document.getElementById('editServerUrl').value;
+    const newUrl = document.getElementById('editServerUrl').value; // Same URL for now
+    const device = document.getElementById('editServerDevice').value;
+    const apiKey = document.getElementById('editServerApiKey').value;
+    const models = document.getElementById('editServerModels').value;
+
+    if (!newUrl || !device || !models) {
+        alert('URL, Device and Models are required');
+        return;
+    }
+
+    try {
+        const response = await fetch('/update-llm-servers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'update',
+                oldUrl,
+                url: newUrl,
+                config: {
+                    device,
+                    apikey: apiKey || undefined,
+                    model: JSON.parse(models)
+                }
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update server');
+        }
+
+        closeEditServerModal();
+        loadConfigs();
+    } catch (error) {
+        alert('Error updating server: ' + error.message);
     }
 }
 

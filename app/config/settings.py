@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     READ_TIMEOUT: float = 300.0  # 读取超时时间
 
     # 环境配置
-    ENV: str = os.getenv("ENV", "development")  # 环境: development/production
+    ENV: str = os.getenv("ENV", "production")  # 环境: development/production
 
     # Session配置
     SESSION_SECRET_KEY: str = os.getenv(

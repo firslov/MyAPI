@@ -21,98 +21,71 @@ from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
 
+def _handle_llm_server_action(api_service, data):
+    """处理LLM服务器操作的核心逻辑"""
+    action = data.get("action")
+    url = data.get("url")
+    config = data.get("config", {})
+    model_status = data.get("status")
+    
+    # 解码URL
+    from urllib.parse import unquote
+    url = unquote(url)
+    servers = api_service.llm_servers_cache
+
+    # 处理不同操作
+    if action == "add":
+        servers[url] = config
+    elif action == "update":
+        old_url = data.get("oldUrl")
+        if old_url and old_url in servers:
+            servers[url] = config
+            if old_url != url:
+                servers.pop(old_url, None)
+        else:
+            servers[url] = config
+    elif action == "delete":
+        servers.pop(url, None)
+    elif action == "toggle_status" and model_status is not None:
+        model_id = data.get("model")
+        if url in servers and model_id:
+            models = servers[url].get("model", {})
+            if model_id in models:
+                models[model_id]["status"] = model_status
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+    
+    api_service.save_llm_servers()
+    return {"status": "success"}
+
 @router.get("/get-llm-servers")
-async def get_llm_servers():
+async def get_llm_servers(request: Request):
     """获取LLM服务器列表"""
     try:
-        if not os.path.exists(settings.LLM_SERVERS_FILE):
-            return {}
-            
-        with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        _, api_service = get_services(request)
+        return api_service.llm_servers_cache
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading LLM servers: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error loading LLM servers: {str(e)}"
+        )
 
 @router.post("/update-llm-servers")
 @admin_required
 async def update_llm_servers(request: Request):
     """更新LLM服务器列表"""
     try:
+        _, api_service = get_services(request)
         data = await request.json()
-        action = data.get("action")
-        url = data.get("url")
-        config = data.get("config", {})
-
-        # 解码URL
-        from urllib.parse import unquote
-        url = unquote(url)
-
-        # 读取现有配置
-        if os.path.exists(settings.LLM_SERVERS_FILE):
-            with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
-                servers = json.load(f)
-        else:
-            servers = {}
-
-        # 处理不同操作
-        if action == "add":
-            servers[url] = config
-        elif action == "update":
-            old_url = data.get("oldUrl")
-            if old_url and old_url in servers:
-                # 更新服务器配置
-                servers[url] = config
-                if old_url != url:
-                    # 如果URL改变了，删除旧的条目
-                    servers.pop(old_url, None)
-            else:
-                servers[url] = config
-        elif action == "delete":
-            servers.pop(url, None)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid action")
-
-        # 保存配置
-        with open(settings.LLM_SERVERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(servers, f, indent=2)
-
-        return {"status": "success"}
+        return _handle_llm_server_action(api_service, data)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating LLM servers: {str(e)}")
-
-@router.post("/update-serve-models")
-@admin_required
-async def update_serve_models(request: Request):
-    """更新服务模型列表"""
-    try:
-        data = await request.json()
-        action = data.get("action")
-        model = data.get("model")
-
-        # 读取现有配置
-        if os.path.exists(settings.SERVE_MODELS_FILE):
-            with open(settings.SERVE_MODELS_FILE, "r", encoding="utf-8") as f:
-                config = json.load(f)
-        else:
-            config = {"models": []}
-
-        # 处理不同操作
-        if action == "add":
-            if model not in config["models"]:
-                config["models"].append(model)
-        elif action == "delete":
-            if model in config["models"]:
-                config["models"].remove(model)
-        else:
-            raise HTTPException(status_code=400, detail="Invalid action")
-
-        # 保存配置
-        with open(settings.SERVE_MODELS_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2)
-
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating serve models: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating LLM servers: {str(e)}",
+            headers={"X-Error-Details": str(e)}
+        )
 
 @router.get("/models")
 @router.get("/v1/models")
@@ -125,12 +98,14 @@ async def list_models():
         models = []
         for server_url, server_info in config.items():
             device = server_info.get("device", "unknown")
-            for model_id in server_info.get("model", {}).keys():
-                models.append({
-                    "id": model_id,
-                    "object": "model",
-                    "owned_by": device
-                })
+            for model_id, model_info in server_info.get("model", {}).items():
+                if model_info.get("status", False):
+                    models.append({
+                        "id": model_id,
+                        "object": "model",
+                        "owned_by": device,
+                        "name": model_info.get("name", model_id)
+                    })
         
         return {
             "object": "list",
@@ -151,32 +126,32 @@ async def get_models():
     """获取可用的模型列表"""
     try:
         # 检查文件是否存在
-        if not os.path.exists(settings.SERVE_MODELS_FILE):
+        if not os.path.exists(settings.LLM_SERVERS_FILE):
             raise FileNotFoundError(
-                f"Models configuration file not found at {settings.SERVE_MODELS_FILE}"
+                f"LLM servers configuration file not found at {settings.LLM_SERVERS_FILE}"
             )
 
         # 读取JSON文件
-        with open(settings.SERVE_MODELS_FILE, "r", encoding="utf-8") as f:
+        with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
             config = json.load(f)
 
-        # 验证JSON格式
-        if not isinstance(config, dict) or "models" not in config:
-            raise ValueError("Invalid models configuration format")
+        # 获取所有活跃模型
+        models = []
+        for server_url, server_info in config.items():
+            for model_id, model_info in server_info.get("model", {}).items():
+                if model_info.get("status", False):
+                    models.append(model_id)
 
-        return {"models": config["models"]}
+        return {"models": models}
 
     except FileNotFoundError as e:
-        # 文件不存在时的错误处理
         raise HTTPException(status_code=500, detail=f"Configuration error: {str(e)}")
     except json.JSONDecodeError as e:
-        # JSON解析错误的处理
         raise HTTPException(
             status_code=500,
             detail=f"Invalid JSON format in configuration file: {str(e)}",
         )
     except Exception as e:
-        # 其他错误的处理
         raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
 
 @router.get("/")
@@ -375,6 +350,9 @@ async def proxy_handler_chat(request: Request):
 
                 api_service.api_usage[api_key].usage += num_tokens
                 log_api_usage(api_key, api_service.api_usage[api_key].dict())
+
+                # 更新模型请求计数
+                api_service.increment_model_reqs(target_server, model)
 
             return StreamingResponse(
                 stream_wrapper(),

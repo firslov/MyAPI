@@ -1,4 +1,6 @@
 from typing import Dict, Optional, List
+import json
+import os
 from fastapi import HTTPException
 from app.models.api_models import ApiKeyUsage, UsageStats
 from app.utils.helpers import generate_token, get_current_time, log_api_usage
@@ -12,6 +14,8 @@ class ApiService:
     def __init__(self):
         self.api_usage: Dict[str, ApiKeyUsage] = {}
         self.encoding = tiktoken.encoding_for_model(settings.TOKENIZER_MODEL)
+        self.llm_servers_cache = {}
+        self.load_llm_servers()
 
     def validate_api_key(self, api_key: str) -> None:
         """验证API密钥
@@ -114,3 +118,39 @@ class ApiService:
         for key in self.api_usage:
             self.api_usage[key].usage = 0
             self.api_usage[key].reqs = 0
+
+    def load_llm_servers(self) -> None:
+        """加载LLM服务器配置到缓存"""
+        try:
+            if os.path.exists(settings.LLM_SERVERS_FILE):
+                with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
+                    self.llm_servers_cache = json.load(f)
+            else:
+                self.llm_servers_cache = {}
+        except Exception as e:
+            self.llm_servers_cache = {}
+            raise RuntimeError(f"Failed to load LLM servers: {str(e)}")
+
+    def save_llm_servers(self) -> None:
+        """将缓存中的LLM服务器配置保存到文件"""
+        try:
+            # 确保目录存在
+            os.makedirs(os.path.dirname(settings.LLM_SERVERS_FILE), exist_ok=True)
+            with open(settings.LLM_SERVERS_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.llm_servers_cache, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            raise RuntimeError(f"Failed to save LLM servers: {str(e)}")
+
+    def increment_model_reqs(self, server_url: str, model_name: str) -> None:
+        """增加模型请求计数
+        
+        Args:
+            server_url: 服务器URL
+            model_name: 模型名称
+        """
+        if server_url in self.llm_servers_cache:
+            models = self.llm_servers_cache[server_url].get("model", {})
+            if model_name in models:
+                models[model_name]["reqs"] = models[model_name].get("reqs", 0) + 1
+                # 异步保存到文件
+                self.save_llm_servers()

@@ -36,21 +36,6 @@ async function loadConfigs() {
             serversTable.appendChild(row);
         }
 
-        // Load serve models
-        const modelsResponse = await fetch('/get-models');
-        const modelsData = await modelsResponse.json();
-        const modelsTable = document.getElementById('serveModelsTable');
-        modelsTable.innerHTML = '';
-
-        for (const model of modelsData.models || []) {
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-gray-50 transition-colors';
-            row.innerHTML = '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + model + '</td>' +
-                '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">' +
-                '<button onclick="deleteModel(\'' + encodeURIComponent(model) + '\')" class="text-red-600 hover:text-red-800" title="Delete">' +
-                '<i class="fas fa-trash"></i></button></td>';
-            modelsTable.appendChild(row);
-        }
     } catch (error) {
         console.error('Error loading configs:', error);
     }
@@ -143,7 +128,7 @@ function showEditServerModal(url) {
             const decodedUrl = decodeURIComponent(url);
             const config = servers[decodedUrl];
             if (!config) throw new Error('Server config not found');
-            
+
             document.getElementById('editServerDevice').value = config.device || '';
             document.getElementById('editServerApiKey').value = config.apikey || '';
             document.getElementById('editServerModels').value = JSON.stringify(config.model || {}, null, 2);
@@ -203,17 +188,9 @@ async function updateServer() {
 // Toggle model status
 async function toggleModelStatus(serverUrl, modelId, currentStatus) {
     try {
-        const serversResponse = await fetch('/get-llm-servers');
-        const servers = await serversResponse.json();
         const decodedUrl = decodeURIComponent(serverUrl);
         const decodedModel = decodeURIComponent(modelId);
-        
-        if (!servers[decodedUrl]?.model?.[decodedModel]) {
-            throw new Error('Model not found');
-        }
-
-        // Update status
-        servers[decodedUrl].model[decodedModel].status = !currentStatus;
+        const newStatus = !currentStatus;
 
         const response = await fetch('/update-llm-servers', {
             method: 'POST',
@@ -221,15 +198,16 @@ async function toggleModelStatus(serverUrl, modelId, currentStatus) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'update',
-                oldUrl: decodedUrl,
+                action: 'toggle_status',
                 url: decodedUrl,
-                config: servers[decodedUrl]
+                model: decodedModel,
+                status: newStatus
             }),
         });
 
         if (!response.ok) {
-            throw new Error('Failed to update model status');
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to update model status');
         }
 
         loadConfigs();
@@ -238,72 +216,6 @@ async function toggleModelStatus(serverUrl, modelId, currentStatus) {
     }
 }
 
-// Model management functions
-function showAddModelModal() {
-    document.getElementById('addModelModal').style.display = 'flex';
-}
-
-function closeAddModelModal() {
-    document.getElementById('addModelModal').style.display = 'none';
-}
-
-async function addModel() {
-    const model = document.getElementById('modelName').value;
-
-    if (!model) {
-        alert('Model name is required');
-        return;
-    }
-
-    try {
-        const response = await fetch('/update-serve-models', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'add',
-                model
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to add model');
-        }
-
-        closeAddModelModal();
-        loadConfigs();
-    } catch (error) {
-        alert('Error adding model: ' + error.message);
-    }
-}
-
-async function deleteModel(model) {
-    if (!confirm('Are you sure you want to delete this model?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch('/update-serve-models', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'delete',
-                model
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to delete model');
-        }
-
-        loadConfigs();
-    } catch (error) {
-        alert('Error deleting model: ' + error.message);
-    }
-}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', loadConfigs);

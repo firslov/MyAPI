@@ -22,7 +22,24 @@ class LLMService:
 
     async def initialize(self) -> None:
         """初始化HTTP客户端"""
-        self.http_client = httpx.AsyncClient(**settings.HTTP_CLIENT_CONFIG)
+        self.http_client = httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_connections=1000,
+                max_keepalive_connections=100,
+                keepalive_expiry=300
+            ),
+            timeout=httpx.Timeout(
+                connect=10.0,  # 连接超时10秒
+                read=300.0,    # 读取超时300秒
+                write=10.0,     # 写入超时10秒
+                pool=10.0       # 连接池超时10秒
+            ),
+            transport=httpx.AsyncHTTPTransport(
+                retries=3,      # 自动重试3次
+                http2=True      # 启用HTTP/2
+            )
+        )
+        # logger.info("HTTP client initialized with optimized settings")
 
     async def cleanup(self) -> None:
         """清理资源"""
@@ -114,7 +131,14 @@ class LLMService:
         """转发请求到目标服务器，如果model有映射关系，则使用映射后的模型名"""
         if "model" in data and data["model"] in self.app_state.model_name_mapping:
             data = data.copy()
-            data["model"] = self.app_state.model_name_mapping[data["model"]]
+            model_info = self.app_state.model_name_mapping[data["model"]]
+            # 处理新旧格式兼容：如果是字符串直接使用，如果是对象则取name字段
+            data["model"] = model_info if isinstance(model_info, str) else model_info["name"]
+
+        # # 打印转发请求详情
+        # logger.info(f"Forwarding request to: {target}")
+        # logger.info(f"Request headers: {json.dumps(headers, indent=2)}")
+        # logger.info(f"Request body: {json.dumps(data, indent=2)}")
 
         try:
             # 设置重试策略
@@ -124,13 +148,16 @@ class LLMService:
             while retries >= 0:
                 try:
                     if stream:
-                        return self.http_client.stream(
+                        # logger.info("Streaming request started")
+                        stream_client = self.http_client.stream(
                             "POST", target, json=data, headers=headers
                         )
+                        return stream_client
 
                     response = await self.http_client.post(
                         target, json=data, headers=headers
                     )
+                    # logger.info(f"Response status: {response.status_code}")
                     response.raise_for_status()
                     self._update_server_health(target, True)  # 标记服务器为健康
                     return response.text

@@ -282,8 +282,9 @@
                                 <div class="flex items-center">
                                     <span>{{ api_key.usage }}/{{ api_key.limit }}</span>
                                     <div class="progress-bar ml-2 w-16">
-                                        <div
-                                            class="progress-bar-fill {% if api_key.limit > 0 %}w-{{ ((api_key.usage / api_key.limit * 100)|round(0, 'floor')|int) }}{% else %}w-0{% endif %}">
+                                        <div class="progress-bar-fill" {% if api_key.limit> 0 %}style="width: {{
+                                            (api_key.usage / api_key.limit * 100) }}%"{% else %}style="width: 0%"{%
+                                            endif %}>
                                         </div>
                                     </div>
                                 </div>

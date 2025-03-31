@@ -37,11 +37,11 @@ python -m app.main
 - `GET /` - 首页,生成API密钥
 ![index](./src/index.jpg)
 
-- `GET /manage-keys` - API密钥管理
-![manage](./src/manage.jpg)
+- `GET /get-usage` - 信息管理
+![dashboard](./src/dashboard1.jpg)
+![dashboard](./src/dashboard2.jpg)
 
-- `GET /get-usage` - 用量统计
-![dashboard](./src/dashboard.jpg)
+- `GET /models` - 获取模型列表
 
 ### LLM接口
 
@@ -71,22 +71,14 @@ python -m app.main
 {
   "server-url": {
     "model": {
-      "public-model-name": "actual-model-name"
+      "public-model-name": {
+        "name": "actual-model-name",
+        "reqs": 0,
+        "status": true
+      }
     },
     "device": "device-info",
     "apikey": "optional-api-key"
   }
-}
-```
-
-3. serve_models_list.json - Serve模型列表
-
-```json
-{
-  "models": [
-    "deepseek-chat",
-    "deepseek-reasoner",
-    "moonshot-v1-8k"
-  ]
 }
 ```

@@ -1,7 +1,11 @@
 {
   "server-url": {
     "model": {
-      "public-model-name": "actual-model-name"
+      "public-model-name": {
+        "name": "actual-model-name",
+        "reqs": 0,
+        "status": true
+      }
     },
     "device": "device-info",
     "apikey": "optional-api-key"

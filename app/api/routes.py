@@ -59,8 +59,9 @@ def _handle_llm_server_action(api_service, data):
     return {"status": "success"}
 
 @router.get("/get-llm-servers")
+@admin_required
 async def get_llm_servers(request: Request):
-    """获取LLM服务器列表"""
+    """获取LLM服务器列表(需要管理员权限)"""
     try:
         _, api_service = get_services(request)
         return api_service.llm_servers_cache

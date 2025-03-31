@@ -64,8 +64,21 @@
             background-color: #4F46E5;
             transition: width 0.5s ease;
         }
+        /* Predefined width percentages */
+        .w-0 { width: 0%; }
+        .w-10 { width: 10%; }
+        .w-20 { width: 20%; }
+        .w-30 { width: 30%; }
+        .w-40 { width: 40%; }
+        .w-50 { width: 50%; }
+        .w-60 { width: 60%; }
+        .w-70 { width: 70%; }
+        .w-80 { width: 80%; }
+        .w-90 { width: 90%; }
+        .w-100 { width: 100%; }
 
-        @media (max-width: 768px) {
+        /* Mobile responsive styles */
+        @media only screen and (max-width: 768px) {
             .table-hidden {
                 display: none;
             }
@@ -101,19 +114,19 @@
                 <ul class="space-y-2 md:space-y-3">
                     <li class="flex justify-between items-center">
                         <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-less-than text-indigo-400 mr-2"></i>
-                            <100 </span>
-                                <span class="text-base md:text-lg font-bold text-indigo-600">{{ less_than_100 }}</span>
+                            <span class="text-indigo-400">Under 100</span>
+                        </span>
+                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ less_than_100 }}</span>
                     </li>
                     <li class="flex justify-between items-center">
                         <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-exchange-alt text-indigo-400 mr-2"></i> 100~10000
+                            <span class="text-indigo-400">100 to 10000</span>
                         </span>
                         <span class="text-base md:text-lg font-bold text-indigo-600">{{ between_100_and_10000 }}</span>
                     </li>
                     <li class="flex justify-between items-center">
                         <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-greater-than text-indigo-400 mr-2"></i> >10000
+                            <span class="text-indigo-400">Over 10000</span>
                         </span>
                         <span class="text-base md:text-lg font-bold text-indigo-600">{{ more_than_10000 }}</span>
                     </li>
@@ -264,8 +277,7 @@
                                 <div class="flex items-center">
                                     <span>{{ api_key.usage }}/{{ api_key.limit }}</span>
                                     <div class="progress-bar ml-2 w-16">
-                                        <div class="progress-bar-fill"
-                                            style="width: {{ (api_key.usage / api_key.limit * 100) }}%"></div>
+                                        <div class="progress-bar-fill {% if api_key.limit > 0 %}w-{{ ((api_key.usage / api_key.limit * 100)|round(0, 'floor')|int) }}{% else %}w-0{% endif %}"></div>
                                     </div>
                                 </div>
                             </td>
@@ -279,15 +291,16 @@
                                 or 'N/A' }}</td>
                             <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">
                                 <div class="flex space-x-2">
-                                    <button onclick="resetUsage('{{ api_key.key }}')"
+                                    <button data-key="{{ api_key.key }}" onclick="resetUsage(this.getAttribute('data-key'))" 
                                         class="text-green-600 hover:text-green-800" title="Reset Usage">
                                         <i class="fas fa-redo"></i>
                                     </button>
-                                    <button onclick="showEditLimit('{{ api_key.key }}', {{ api_key.limit }})"
+                                    <button data-key="{{ api_key.key }}" data-limit="{{ api_key.limit }}" 
+                                        onclick="showEditLimit(this.getAttribute('data-key'), this.getAttribute('data-limit'))"
                                         class="text-indigo-600 hover:text-indigo-800" title="Edit Limit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button onclick="revokeKey('{{ api_key.key }}')"
+                                    <button data-key="{{ api_key.key }}" onclick="revokeKey(this.getAttribute('data-key'))"
                                         class="text-red-600 hover:text-red-800" title="Revoke Key">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -368,278 +381,8 @@
         </div>
     </div>
 
-    <script>
-        // Load and display LLM servers and models
-        async function loadConfigs() {
-            try {
-                // Load LLM servers
-                const serversResponse = await fetch('/get-llm-servers');
-                const servers = await serversResponse.json();
-                const serversTable = document.getElementById('llmServersTable');
-                serversTable.innerHTML = '';
-
-                for (const [url, config] of Object.entries(servers)) {
-                    const models = Object.entries(config.model || {}).map(([k, v]) => `${k}→${v}`).join(', ');
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50 transition-colors';
-                    row.innerHTML = '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + url + '</td>' +
-                        '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + (config.device || 'N/A') + '</td>' +
-                        '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + models + '</td>' +
-                        '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">' +
-                        '<button onclick="deleteServer(\'' + encodeURIComponent(url) + '\')" class="text-red-600 hover:text-red-800" title="Delete">' +
-                        '<i class="fas fa-trash"></i></button></td>';
-                    serversTable.appendChild(row);
-                }
-
-                // Load serve models
-                const modelsResponse = await fetch('/get-models');
-                const modelsData = await modelsResponse.json();
-                const modelsTable = document.getElementById('serveModelsTable');
-                modelsTable.innerHTML = '';
-
-                for (const model of modelsData.models || []) {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50 transition-colors';
-                    row.innerHTML = '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">' + model + '</td>' +
-                        '<td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">' +
-                        '<button onclick="deleteModel(\'' + encodeURIComponent(model) + '\')" class="text-red-600 hover:text-red-800" title="Delete">' +
-                        '<i class="fas fa-trash"></i></button></td>';
-                    modelsTable.appendChild(row);
-                }
-            } catch (error) {
-                console.error('Error loading configs:', error);
-            }
-        }
-
-        // Server management functions
-        function showAddServerModal() {
-            document.getElementById('addServerModal').style.display = 'flex';
-        }
-
-        function closeAddServerModal() {
-            document.getElementById('addServerModal').style.display = 'none';
-        }
-
-        async function addServer() {
-            const url = document.getElementById('serverUrl').value;
-            const device = document.getElementById('serverDevice').value;
-            const apiKey = document.getElementById('serverApiKey').value;
-            const models = document.getElementById('serverModels').value;
-
-            if (!url || !device || !models) {
-                alert('URL, Device and Models are required');
-                return;
-            }
-
-            try {
-                const response = await fetch('/update-llm-servers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'add',
-                        url,
-                        config: {
-                            device,
-                            apikey: apiKey || undefined,
-                            model: JSON.parse(models)
-                        }
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to add server');
-                }
-
-                closeAddServerModal();
-                loadConfigs();
-            } catch (error) {
-                alert('Error adding server: ' + error.message);
-            }
-        }
-
-        async function deleteServer(url) {
-            if (!confirm('Are you sure you want to delete this server?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/update-llm-servers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        url
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete server');
-                }
-
-                loadConfigs();
-            } catch (error) {
-                alert('Error deleting server: ' + error.message);
-            }
-        }
-
-        // Model management functions
-        function showAddModelModal() {
-            document.getElementById('addModelModal').style.display = 'flex';
-        }
-
-        function closeAddModelModal() {
-            document.getElementById('addModelModal').style.display = 'none';
-        }
-
-        async function addModel() {
-            const model = document.getElementById('modelName').value;
-
-            if (!model) {
-                alert('Model name is required');
-                return;
-            }
-
-            try {
-                const response = await fetch('/update-serve-models', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'add',
-                        model
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to add model');
-                }
-
-                closeAddModelModal();
-                loadConfigs();
-            } catch (error) {
-                alert('Error adding model: ' + error.message);
-            }
-        }
-
-        async function deleteModel(model) {
-            if (!confirm('Are you sure you want to delete this model?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/update-serve-models', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        model
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to delete model');
-                }
-
-                loadConfigs();
-            } catch (error) {
-                alert('Error deleting model: ' + error.message);
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', loadConfigs);
-        // Original functions
-        function showEditLimit(apiKey, currentLimit) {
-            document.getElementById('editLimitModal').style.display = 'flex';
-            document.getElementById('newLimit').value = currentLimit;
-            document.getElementById('currentApiKey').value = apiKey;
-        }
-
-        function closeEditModal() {
-            document.getElementById('editLimitModal').style.display = 'none';
-        }
-
-        async function updateLimit() {
-            const apiKey = document.getElementById('currentApiKey').value;
-            const newLimit = parseInt(document.getElementById('newLimit').value);
-
-            if (!newLimit || newLimit <= 0) {
-                alert('Please enter a valid limit');
-                return;
-            }
-
-            try {
-                const response = await fetch('/update-api-key-limit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        api_key: apiKey,
-                        new_limit: newLimit
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to update limit');
-                }
-
-                document.getElementById(`limit_${apiKey}`).textContent = newLimit;
-                closeEditModal();
-            } catch (error) {
-                alert('Error updating limit: ' + error.message);
-            }
-        }
-
-        async function resetUsage(apiKey) {
-            if (!confirm('Are you sure you want to reset the usage for this API key?')) {
-                return;
-            }
-            try {
-                const response = await fetch('/reset-api-key-usage', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ api_key: apiKey }),
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to reset usage');
-                }
-                document.getElementById(`usage_${apiKey}`).textContent = '0';
-            } catch (error) {
-                alert('Error resetting usage: ' + error.message);
-            }
-        }
-
-        async function revokeKey(apiKey) {
-            if (!confirm('Are you sure you want to revoke this API key?')) {
-                return;
-            }
-            try {
-                const response = await fetch('/revoke-api-key', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ api_key: apiKey }),
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to revoke API key');
-                }
-                window.location.reload();
-            } catch (error) {
-                alert('Error revoking API key: ' + error.message);
-            }
-        }
-    </script>
+    <!-- Dashboard JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
 </body>
 
 </html>

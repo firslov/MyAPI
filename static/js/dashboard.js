@@ -12,12 +12,13 @@ async function loadConfigs() {
                 const statusClass = v.status ? 'text-green-500' : 'text-red-500';
                 const statusIcon = v.status ? 'fa-check-circle' : 'fa-times-circle';
                 const statusTitle = v.status ? 'Active' : 'Inactive';
+                const statusClick = `toggleModelStatus('${encodeURIComponent(url)}','${encodeURIComponent(k)}',${v.status})`;
                 return [
                     '<div class="flex items-center justify-between py-1">',
                     '<span>' + k + '→' + v.name + '</span>',
                     '<div class="flex items-center space-x-2">',
                     '<span class="text-xs text-gray-500">' + v.reqs.toString() + ' reqs</span>',
-                    '<i class="fas ' + statusIcon + ' ' + statusClass + '" title="' + statusTitle.toString() + '"></i>',
+                    '<i class="fas ' + statusIcon + ' ' + statusClass + '" title="' + statusTitle.toString() + '" onclick="' + statusClick + '"></i>',
                     '</div>',
                     '</div>'
                 ].join('');
@@ -196,6 +197,44 @@ async function updateServer() {
         loadConfigs();
     } catch (error) {
         alert('Error updating server: ' + error.message);
+    }
+}
+
+// Toggle model status
+async function toggleModelStatus(serverUrl, modelId, currentStatus) {
+    try {
+        const serversResponse = await fetch('/get-llm-servers');
+        const servers = await serversResponse.json();
+        const decodedUrl = decodeURIComponent(serverUrl);
+        const decodedModel = decodeURIComponent(modelId);
+        
+        if (!servers[decodedUrl]?.model?.[decodedModel]) {
+            throw new Error('Model not found');
+        }
+
+        // Update status
+        servers[decodedUrl].model[decodedModel].status = !currentStatus;
+
+        const response = await fetch('/update-llm-servers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'update',
+                oldUrl: decodedUrl,
+                url: decodedUrl,
+                config: servers[decodedUrl]
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update model status');
+        }
+
+        loadConfigs();
+    } catch (error) {
+        alert('Error toggling model status: ' + error.message);
     }
 }
 

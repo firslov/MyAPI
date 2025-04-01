@@ -65,9 +65,13 @@ class ApiService:
         usage.last_used = get_current_time()
 
         usage.reqs += 1
+        
+        # 安全高效计算token数量
         usage.usage += sum(
-            len(self.encoding.encode(m.get("content", "")))
+            len(self.encoding.encode(content))
             for m in request_data.get("messages", [])
+            for content in [m.get("content", "")]
+            if isinstance(content, str)
         )
 
         # log_api_usage(api_key, usage.dict())

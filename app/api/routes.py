@@ -380,6 +380,9 @@ async def proxy_handler_chat(request: Request):
 
             log_api_usage(api_key, api_service.api_usage[api_key].dict())
 
+            # 更新模型请求计数
+            api_service.increment_model_reqs(target_server, model)
+
             return JSONResponse(response)
         except json.JSONDecodeError as e:
             return JSONResponse(

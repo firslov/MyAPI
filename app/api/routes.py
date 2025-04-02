@@ -395,6 +395,53 @@ async def proxy_handler_chat(request: Request):
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
+@router.post("/v1/embeddings")
+@router.post("/embeddings")
+async def proxy_handler_embeddings(request: Request):
+    """处理embeddings请求转发"""
+    llm_service, api_service = get_services(request)
+
+    # 身份验证
+    auth_header = request.headers.get("Authorization", "")
+    _, _, api_key = auth_header.partition(" ")
+    api_service.validate_api_key(api_key)
+    api_service.check_usage_limit(api_key)
+
+    # 请求处理
+    req_data = await request.json()
+    model = req_data.get("model")
+
+    # 获取目标服务器
+    target_server = llm_service.get_target_server(model)
+    target = f"{target_server}{request.url.path.replace('/v1', '', 1)}"
+
+    # 构造请求头
+    headers = llm_service.get_auth_header(model, api_key)
+
+    try:
+        # 转发请求
+        response_text = await llm_service.forward_request(target, req_data, headers)
+        response = json.loads(response_text)
+
+        # 更新用量（embedding模型使用系数0.1）
+        if "usage" in response and "total_tokens" in response["usage"]:
+            api_service.api_usage[api_key].usage += 0.1 * response["usage"]["total_tokens"]
+        
+        log_api_usage(api_key, api_service.api_usage[api_key].dict())
+        api_service.increment_model_reqs(target_server, model)
+
+        return JSONResponse(response)
+
+    except json.JSONDecodeError as e:
+        return JSONResponse(
+            {"error": "Invalid response from upstream server", "message": str(e)},
+            status_code=500,
+        )
+    except HTTPException as e:
+        return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
+    except Exception as e:
+        return JSONResponse({"error": "Internal server error"}, status_code=500)
+
 @router.post("/v1/completions")
 @router.post("/completions")
 async def proxy_handler_completions(request: Request):

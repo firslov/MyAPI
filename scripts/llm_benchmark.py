@@ -41,7 +41,7 @@ class LLMBenchmark:
             "temperature": 0.7,
             "top_p": 1,
             "stream": False,
-            "max_tokens": 100
+            "max_tokens": 1
         }
 
     def test_latency(self, num_requests: int = 10) -> Dict[str, float]:

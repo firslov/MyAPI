@@ -95,6 +95,7 @@ Time elapsed: 4.18s
 
 - `POST [/v1]/chat/completions` - 聊天补全
 - `POST [/v1]/completions` - 文本补全
+- `POST [/v1]/embeddings` - 文本向量化
 
 ## 配置文件
 

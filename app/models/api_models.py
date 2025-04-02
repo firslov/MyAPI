@@ -55,7 +55,7 @@ class UsageStats(BaseModel):
         default=0, description="使用量在100-10000之间的数量"
     )
     more_than_10000: int = Field(default=0, description="使用量大于10000的数量")
-    total_usage: int = Field(default=0, description="总使用量")
+    total_usage: float = Field(default=0, description="总使用量")
     total_entries: int = Field(default=0, description="总条目数")
     total_reqs: int = Field(default=0, description="总请求数")
     current_time: str = Field(description="当前时间")

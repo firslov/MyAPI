@@ -30,6 +30,54 @@ export SESSION_SECRET_KEY=your-secure-key  # 生产环境必须
 python -m app.main
 ```
 
+## 性能测试
+
+`scripts/llm_benchmark.py` 提供了LLM API的性能测试工具，可以测量延迟和吞吐量。
+
+### 测试方法
+
+1. 安装额外依赖 (如果尚未安装):
+
+```bash
+pip install httpx
+```
+
+2. 运行基准测试:
+
+```bash
+python scripts/llm_benchmark.py \
+  --base-url http://your-api-server \
+  --api-key your-api-key \
+  --model your-model-name
+```
+
+3. 可选参数:
+
+- `--latency-requests`: 延迟测试请求数 (默认: 10)
+- `--throughput-requests`: 吞吐量测试总请求数 (默认: 100)
+- `--concurrency`: 吞吐量测试并发数 (默认: 10)
+- `--timeout`: 请求超时时间(秒) (默认: 30)
+- `--connect-timeout`: 连接超时时间(秒) (默认: 10)
+
+### 结果解读
+
+- **延迟测试**: 测量连续请求的平均/最小/最大响应时间
+- **吞吐量测试**: 测量并发请求的处理能力(请求数/秒)
+
+测试完成后会输出类似结果:
+
+```
+=== Running Latency Test ===
+Average latency: 0.4523s
+Min latency: 0.4011s  
+Max latency: 0.5214s
+
+=== Running Throughput Test ===  
+Requests per second: 23.45
+Successful requests: 98/100
+Time elapsed: 4.18s
+```
+
 ## API文档
 
 ### 管理接口

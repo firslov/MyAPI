@@ -21,7 +21,7 @@ from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
 
-def _handle_llm_server_action(api_service, data):
+def _handle_llm_server_action(request, api_service, data):
     """处理LLM服务器操作的核心逻辑"""
     action = data.get("action")
     url = data.get("url")
@@ -56,6 +56,13 @@ def _handle_llm_server_action(api_service, data):
         raise HTTPException(status_code=400, detail="Invalid action")
     
     api_service.save_llm_servers()
+    
+    # 重新初始化LLM资源
+    llm_service = request.app.state.app.llm_service
+    with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
+        servers_data = json.load(f)
+    llm_service.init_llm_resources(servers_data)
+    
     return {"status": "success"}
 
 @router.get("/get-llm-servers")
@@ -78,7 +85,7 @@ async def update_llm_servers(request: Request):
     try:
         _, api_service = get_services(request)
         data = await request.json()
-        return _handle_llm_server_action(api_service, data)
+        return _handle_llm_server_action(request, api_service, data)
     except HTTPException:
         raise
     except Exception as e:

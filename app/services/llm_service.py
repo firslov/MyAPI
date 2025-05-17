@@ -2,6 +2,7 @@ import json
 from typing import Dict, Optional, Union, List
 from collections import defaultdict
 import time
+import socket
 
 import httpx
 from fastapi import HTTPException
@@ -36,7 +37,11 @@ class LLMService:
             ),
             transport=httpx.AsyncHTTPTransport(
                 retries=3,      # 自动重试3次
-                http2=True      # 启用HTTP/2
+                http2=True,     # 启用HTTP/2
+                socket_options=[
+                    (socket.IPPROTO_TCP, socket.TCP_NODELAY, 1),
+                    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                ]
             )
         )
         # logger.info("HTTP client initialized with optimized settings")
@@ -150,7 +155,15 @@ class LLMService:
                     if stream:
                         # logger.info("Streaming request started")
                         stream_client = self.http_client.stream(
-                            "POST", target, json=data, headers=headers
+                            "POST", target, 
+                            json=data, 
+                            headers=headers,
+                            timeout=httpx.Timeout(
+                                connect=10.0,
+                                read=None,  # 流式请求不设置读取超时
+                                write=10.0,
+                                pool=10.0
+                            )
                         )
                         return stream_client
 

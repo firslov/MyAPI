@@ -26,12 +26,13 @@ class Application:
 
     async def startup(self) -> None:
         """应用启动初始化"""
-        # 加载配置
-        servers_data = await load_json_file(settings.LLM_SERVERS_FILE)
-        self.llm_service.init_llm_resources(servers_data)
-
         # 初始化服务
         await self.llm_service.initialize()
+        
+        # 使用ApiService缓存的配置初始化LLM资源
+        self.llm_service.init_llm_resources(self.api_service.llm_servers_cache)
+        
+        # 加载API密钥使用情况
         api_usage_data = await load_json_file(settings.API_KEYS_FILE)
         self.api_service.api_usage = {
             key: ApiKeyUsage(**data) for key, data in api_usage_data.items()
@@ -76,10 +77,10 @@ class Application:
             }
             await save_json_file(usage_data, settings.API_KEYS_FILE)
 
-            # 更新LLM服务器列表
-            servers_data = await load_json_file(settings.LLM_SERVERS_FILE)
-            if servers_data != self.llm_service.app_state.llm_servers:
-                self.llm_service.init_llm_resources(servers_data)
+            # 更新LLM服务器列表（使用ApiService缓存）
+            current_servers_data = self.api_service.llm_servers_cache
+            if current_servers_data != self.llm_service.app_state.llm_servers:
+                self.llm_service.init_llm_resources(current_servers_data)
                 logger.info("LLM servers list updated")
 
 

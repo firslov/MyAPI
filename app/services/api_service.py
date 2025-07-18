@@ -15,6 +15,7 @@ class ApiService:
         self.api_usage: Dict[str, ApiKeyUsage] = {}
         self.encoding = tiktoken.encoding_for_model(settings.TOKENIZER_MODEL)
         self.llm_servers_cache = {}
+        self.last_modified = 0  # 记录配置文件最后修改时间
         self.load_llm_servers()
 
     def validate_api_key(self, api_key: str) -> None:
@@ -124,13 +125,18 @@ class ApiService:
             self.api_usage[key].reqs = 0
 
     def load_llm_servers(self) -> None:
-        """加载LLM服务器配置到缓存"""
+        """加载LLM服务器配置到缓存（仅在文件修改后重新加载）"""
         try:
-            if os.path.exists(settings.LLM_SERVERS_FILE):
+            if not os.path.exists(settings.LLM_SERVERS_FILE):
+                self.llm_servers_cache = {}
+                return
+                
+            # 检查文件修改时间，仅当变化时重新加载
+            current_mtime = os.path.getmtime(settings.LLM_SERVERS_FILE)
+            if current_mtime > self.last_modified:
                 with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
                     self.llm_servers_cache = json.load(f)
-            else:
-                self.llm_servers_cache = {}
+                self.last_modified = current_mtime
         except Exception as e:
             self.llm_servers_cache = {}
             raise RuntimeError(f"Failed to load LLM servers: {str(e)}")

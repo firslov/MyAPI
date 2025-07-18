@@ -146,89 +146,55 @@ class LLMService:
         # logger.info(f"Request body: {json.dumps(data, indent=2)}")
 
         try:
-            # 设置重试策略
-            retries = 2
-            last_error = None
-
-            while retries >= 0:
-                try:
-                    if stream:
-                        # logger.info("Streaming request started")
-                        stream_client = self.http_client.stream(
-                            "POST", target, 
-                            json=data, 
-                            headers=headers,
-                            timeout=httpx.Timeout(
-                                connect=10.0,
-                                read=None,  # 流式请求不设置读取超时
-                                write=10.0,
-                                pool=10.0
-                            )
-                        )
-                        return stream_client
-
-                    response = await self.http_client.post(
-                        target, json=data, headers=headers
+            if stream:
+                stream_client = self.http_client.stream(
+                    "POST", target, 
+                    json=data, 
+                    headers=headers,
+                    timeout=httpx.Timeout(
+                        connect=10.0,
+                        read=None,
+                        write=10.0,
+                        pool=10.0
                     )
-                    # logger.info(f"Response status: {response.status_code}")
-                    response.raise_for_status()
-                    self._update_server_health(target, True)  # 标记服务器为健康
-                    return response.text
+                )
+                return stream_client
 
-                except httpx.HTTPStatusError as exc:
-                    last_error = exc
-                    logger.error(f"HTTP error for {target}: {exc.response.status_code}")
-                    self._update_server_health(target, False)  # 标记服务器为不健康
-                    if exc.response.status_code >= 500:  # 只有服务器错误才重试
-                        retries -= 1
-                        if retries >= 0:
-                            await self.http_client.aclose()  # 关闭连接以确保重新建立
-                            self.http_client = httpx.AsyncClient(
-                                **settings.HTTP_CLIENT_CONFIG
-                            )
-                            continue
-                    break
+            response = await self.http_client.post(
+                target, json=data, headers=headers
+            )
+            response.raise_for_status()
+            self._update_server_health(target, True)
+            return response.text
 
-                except Exception as exc:
-                    last_error = exc
-                    logger.error(f"Network error for {target}: {str(exc)}")
-                    self._update_server_health(target, False)
-                    retries -= 1
-                    if retries >= 0:
-                        await self.http_client.aclose()
-                        self.http_client = httpx.AsyncClient(
-                            **settings.HTTP_CLIENT_CONFIG
-                        )
-                        continue
-                    break
-
-            # 处理最终错误
-            if isinstance(last_error, httpx.HTTPStatusError):
-                if stream:
-                    return last_error.response
-                error_detail = {
-                    "error": f"LLM_SERVER 响应状态码 {last_error.response.status_code}",
-                    "message": str(last_error),
-                }
-            else:
-                if stream:
-                    return httpx.Response(status_code=500, text=str(last_error))
-                error_detail = {
-                    "error": "与 LLM_SERVER 通信时出现网络错误",
-                    "message": str(last_error),
-                }
-            return json.dumps(error_detail)
+        except httpx.HTTPStatusError as exc:
+            self._update_server_health(target, False)
+            logger.error(f"HTTP error for {target}: {exc.response.status_code}")
+            
+            # 只关闭问题连接而非整个客户端
+            if self.http_client:
+                await self.http_client.aclose(force=True)
+            
+            if stream:
+                return exc.response
+            return json.dumps({
+                "error": f"LLM_SERVER 响应状态码 {exc.response.status_code}",
+                "message": str(exc)
+            })
 
         except Exception as exc:
-            logger.error(f"Unexpected error: {str(exc)}")
+            self._update_server_health(target, False)
+            logger.error(f"Network error for {target}: {str(exc)}")
+            
+            if self.http_client:
+                await self.http_client.aclose(force=True)
+            
             if stream:
                 return httpx.Response(status_code=500, text=str(exc))
-            return json.dumps(
-                {
-                    "error": "处理请求时发生意外错误",
-                    "message": str(exc),
-                }
-            )
+            return json.dumps({
+                "error": "与 LLM_SERVER 通信时出现网络错误",
+                "message": str(exc)
+            })
 
     def get_auth_header(self, model: str, api_key: str) -> Dict[str, str]:
         """生成认证头

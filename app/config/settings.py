@@ -53,6 +53,8 @@ class Settings(BaseSettings):
 
     # 其他
     TOKENIZER_MODEL: str = "gpt-3.5-turbo"  # 默认分词器模型
+    HEALTH_CHECK_INTERVAL: int = 60  # 健康检查间隔时间(秒)
+    MAX_RETRIES: int = 3  # HTTP请求最大重试次数
 
     class Config:
         case_sensitive = True

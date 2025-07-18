@@ -152,23 +152,102 @@
             }
         }
 
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --background: #fafafa;
+            --card: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
-
-        /* 悬浮缩放效果 */
+        
         .hover-scale {
             transition: transform 0.3s ease;
         }
-
+        
         .hover-scale:hover {
             transform: scale(1.02);
         }
-
-        /* 自定义滚动条 */
+        
         .custom-scrollbar {
             scrollbar-width: thin;
-            scrollbar-color: #818cf8 #e5e7eb;
+            scrollbar-color: var(--primary-light) var(--border);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 3px;
+        }
+        
+        .card {
+            background-color: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+                        0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 
+                        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--border);
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary);
+            transition: width 0.5s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
+        }
+        
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -317,48 +396,61 @@
 </head>
 
 <body class="bg-gradient-to-r from-blue-50 to-green-50 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white shadow-2xl rounded-lg p-6 w-full max-w-4xl fade-in">
-        <!-- 头部导航 -->
+    <div class="bg-white shadow-2xl rounded-xl p-6 w-full max-w-4xl fade-in">
+        <!-- Header Navigation -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-600 mb-4 md:mb-0">API Service</h1>
-            <div class="flex space-x-4">
-                <a href="/get-usage" class="flex items-center text-indigo-600 hover:text-indigo-800 hover-scale">
-                    <i class="fas fa-chart-bar mr-2"></i>
-                    <span>Dashboard & Management</span>
-                </a>
+            <div class="flex items-center">
+                <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                    <i class="fas fa-server text-indigo-600 text-xl"></i>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+                    API <span class="text-indigo-600">Service</span>
+                </h1>
             </div>
+            
+            <a href="/get-usage" class="btn-primary flex items-center">
+                <i class="fas fa-chart-bar mr-2"></i>
+                <span>Dashboard & Management</span>
+            </a>
         </div>
 
-        <!-- API密钥生成区域 -->
-        <div class="bg-gray-50 rounded-lg p-6 shadow-md mb-6 hover-scale">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">获取API密钥</h2>
-            <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-                <input type="tel" id="phone_input"
-                    class="flex-grow w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="请输入手机号">
-                <button onclick="generateApiKey()"
-                    class="w-full md:w-auto bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+        <!-- API Key Generation Area -->
+        <div class="card fade-in mb-6">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-key text-indigo-500 mr-2"></i>
                     获取API密钥
-                </button>
+                </h2>
+                <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <input type="tel" id="phone_input"
+                        class="flex-grow w-full md:w-auto px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="请输入手机号">
+                    <button onclick="generateApiKey()"
+                        class="btn-primary w-full md:w-auto">
+                        获取API密钥
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- API信息展示区域 -->
+        <!-- API Information Display Area -->
         <div class="space-y-4">
-            <!-- API Key 显示 -->
-            <div class="bg-gray-50 rounded-lg p-4 hover-scale">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                    <div class="flex items-center mb-2 md:mb-0">
-                        <i class="fas fa-key text-indigo-500 text-xl mr-3"></i>
-                        <span class="text-lg font-semibold text-gray-800">API密钥</span>
-                    </div>
-                    <div class="flex items-center w-full md:w-auto">
-                        <span id="api_key_display"
-                            class="truncate-text text-green-600 font-mono mr-2">生成API密钥后请保存</span>
-                        <button onclick="copyToClipboard('api_key_display')"
-                            class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors">
-                            <i class="fas fa-copy"></i>
-                        </button>
+            <!-- API Key Display -->
+            <div class="card fade-in">
+                <div class="p-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div class="flex items-center mb-2 md:mb-0">
+                            <i class="fas fa-key text-indigo-500 text-xl mr-3"></i>
+                            <span class="text-lg font-semibold text-gray-800">API密钥</span>
+                        </div>
+                        <div class="flex items-center w-full md:w-auto">
+                            <span id="api_key_display"
+                                class="truncate-text text-green-600 font-mono mr-2">生成API密钥后请保存</span>
+                            <button onclick="copyToClipboard('api_key_display')"
+                                class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -428,15 +520,15 @@
         <!-- Footer -->
         <div class="mt-8 flex justify-center space-x-6">
             <a href="https://github.com/firslov/MyAPI" target="_blank"
-                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale">
+                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale footer-icon">
                 <i class="fab fa-github text-2xl"></i>
             </a>
             <a href="https://chatboxai.app/zh#download" target="_blank"
-                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale">
+                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale footer-icon">
                 <i class="fas fa-download text-2xl"></i>
             </a>
             <button onclick="showContactModal()"
-                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale">
+                class="text-gray-600 hover:text-indigo-600 transition-colors hover-scale footer-icon">
                 <i class="fas fa-user-circle text-2xl"></i>
             </button>
         </div>

@@ -8,381 +8,451 @@
     <title>API Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #10b981;
+            --background: #fafafa;
+            --card: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+        }
+        
         @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-
+        
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
-
+        
         .custom-scrollbar {
             scrollbar-width: thin;
-            scrollbar-color: #818cf8 #e5e7eb;
+            scrollbar-color: var(--primary-light) var(--border);
         }
-
+        
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
-
+        
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #e5e7eb;
+            background: var(--border);
             border-radius: 3px;
         }
-
+        
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #818cf8;
+            background: var(--primary-light);
             border-radius: 3px;
         }
-
-        .hover-scale {
-            transition: transform 0.3s ease;
-        }
-
-        .hover-scale:hover {
-            transform: scale(1.02);
-        }
-
-        .progress-bar {
-            height: 6px;
-            border-radius: 3px;
-            background-color: #E5E7EB;
+        
+        .card {
+            background-color: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+                        0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
             overflow: hidden;
         }
-
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 
+                        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .scalable-card {
+            transition: transform 0.3s ease;
+        }
+        
+        .scalable-card:hover {
+            transform: translateY(-2px) scale(1.01);
+        }
+        
+        .card-header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--border);
+            overflow: hidden;
+        }
+        
         .progress-bar-fill {
             height: 100%;
-            background-color: #4F46E5;
+            background-color: var(--primary);
             transition: width 0.5s ease;
         }
-
-        /* Predefined width percentages */
-        .w-0 {
-            width: 0%;
+        
+        .table-header {
+            background-color: #f9fafb;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
         }
-
-        .w-10 {
-            width: 10%;
+        
+        .table-row {
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s;
         }
-
-        .w-20 {
-            width: 20%;
+        
+        .table-row:hover {
+            background-color: #f9fafb;
         }
-
-        .w-30 {
-            width: 30%;
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
         }
-
-        .w-40 {
-            width: 40%;
+        
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
         }
-
-        .w-50 {
-            width: 50%;
+        
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
         }
-
-        .w-60 {
-            width: 60%;
+        
+        .modal-content {
+            background-color: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-
-        .w-70 {
-            width: 70%;
-        }
-
-        .w-80 {
-            width: 80%;
-        }
-
-        .w-90 {
-            width: 90%;
-        }
-
-        .w-100 {
-            width: 100%;
-        }
-
+        
         /* Mobile responsive styles */
         @media only screen and (max-width: 768px) {
             .table-hidden {
                 display: none;
             }
+            
+            .card {
+                border-radius: 8px;
+            }
         }
     </style>
 </head>
 
-<body class="bg-gradient-to-r from-blue-50 to-green-50 min-h-screen p-2 md:p-6">
-    <div class="bg-white shadow-2xl rounded-lg p-4 md:p-8 max-w-full md:max-w-6xl w-full mx-auto">
+<body class="min-h-screen p-4 md:p-6">
+    <div class="max-w-full md:max-w-6xl w-full mx-auto">
         <!-- Navigation -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 space-y-4 md:space-y-0">
-            <h1 class="text-2xl md:text-4xl font-extrabold text-indigo-600 text-center md:text-left">
-                API Dashboard
-            </h1>
-            <div class="flex space-x-4 items-center">
-                <a href="/" class="text-sm md:text-base text-indigo-600 hover:text-indigo-800">
-                    <i class="fas fa-home"></i> <span class="hidden md:inline">Home</span>
-                </a>
-                <div class="text-sm md:text-base text-gray-600">
-                    <i class="fas fa-clock mr-1"></i>
-                    <span>{{ current_time }}</span>
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4">
+            <div class="flex items-center">
+                <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                    <i class="fas fa-chart-line text-indigo-600 text-xl"></i>
                 </div>
-                <a href="/logout" class="text-sm md:text-base text-red-600 hover:text-red-800">
-                    <i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Logout</span>
-                </a>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+                    API <span class="text-indigo-600">Dashboard</span>
+                </h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center text-gray-600">
+                    <i class="fas fa-clock mr-2"></i>
+                    <span class="font-medium">{{ current_time }}</span>
+                </div>
+                <div class="flex gap-3">
+                    <a href="/" class="flex items-center text-gray-600 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-home mr-1"></i>
+                        <span class="hidden md:inline">Home</span>
+                    </a>
+                    <a href="/logout" class="flex items-center text-gray-600 hover:text-red-600 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-1"></i>
+                        <span class="hidden md:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Keys</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ total_entries }}</h3>
+                        </div>
+                        <div class="bg-indigo-100 p-3 rounded-full">
+                            <i class="fas fa-key text-indigo-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Requests</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ total_reqs }}</h3>
+                        </div>
+                        <div class="bg-indigo-100 p-3 rounded-full">
+                            <i class="fas fa-exchange-alt text-indigo-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Usage</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1">{{ total_usage|int }}</h3>
+                        </div>
+                        <div class="bg-indigo-100 p-3 rounded-full">
+                            <i class="fas fa-chart-bar text-indigo-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
-            <!-- Usage Range Card -->
-            <div class="bg-gray-100 rounded-lg p-4 md:p-6 shadow-md hover-scale fade-in">
-                <div class="flex items-center mb-3 md:mb-4">
-                    <i class="fas fa-chart-bar text-indigo-500 text-xl md:text-2xl mr-2 md:mr-3"></i>
-                    <h2 class="text-lg md:text-xl font-semibold text-gray-800">Usage Range</h2>
+        <!-- Usage Distribution -->
+        <div class="card fade-in mb-6 scalable-card">
+    <div class="card fade-in mb-6">
+            <div class="card-header">
+                <div class="flex items-center">
+                    <i class="fas fa-chart-pie text-indigo-500 text-xl mr-3"></i>
+                    <h2 class="text-lg font-semibold text-gray-800">Usage Distribution</h2>
                 </div>
-                <ul class="space-y-2 md:space-y-3">
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <span class="text-indigo-400">Under 100</span>
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ less_than_100 }}</span>
-                    </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <span class="text-indigo-400">100 to 10000</span>
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ between_100_and_10000 }}</span>
-                    </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <span class="text-indigo-400">Over 10000</span>
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ more_than_10000 }}</span>
-                    </li>
-                </ul>
             </div>
-
-            <!-- Totals Card -->
-            <div class="bg-gray-100 rounded-lg p-4 md:p-6 shadow-md hover-scale fade-in">
-                <div class="flex items-center mb-3 md:mb-4">
-                    <i class="fas fa-calculator text-indigo-500 text-xl md:text-2xl mr-2 md:mr-3"></i>
-                    <h2 class="text-lg md:text-xl font-semibold text-gray-800">Totals</h2>
+            <div class="card-body grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Usage Distribution - Data Attributes -->
+                <div class="flex flex-col items-center p-4 border border-gray-200 rounded-lg usage-distribution" 
+                     data-value="{{ less_than_100 }}" 
+                     data-total="{{ total_entries }}">
+                    <div class="text-3xl font-bold text-indigo-600 mb-2">{{ less_than_100 }}</div>
+                    <div class="text-sm font-medium text-gray-500">Under 100</div>
+                    <div class="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="progress-bar-fill bg-indigo-400 h-2.5 rounded-full"></div>
+                    </div>
                 </div>
-                <ul class="space-y-2 md:space-y-3">
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-key text-indigo-400 mr-2"></i> Total Keys
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ total_entries }}</span>
-                    </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-list-ol text-indigo-400 mr-2"></i> Total Reqs
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ total_reqs }}</span>
-                    </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-sm md:text-base text-gray-700">
-                            <i class="fas fa-chart-line text-indigo-400 mr-2"></i> Total Usage
-                        </span>
-                        <span class="text-base md:text-lg font-bold text-indigo-600">{{ total_usage|int }}</span>
-                    </li>
-                </ul>
+                
+                <div class="flex flex-col items-center p-4 border border-gray-200 rounded-lg usage-distribution" 
+                     data-value="{{ between_100_and_10000 }}" 
+                     data-total="{{ total_entries }}">
+                    <div class="text-3xl font-bold text-indigo-600 mb-2">{{ between_100_and_10000 }}</div>
+                    <div class="text-sm font-medium text-gray-500">100 to 10,000</div>
+                    <div class="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="progress-bar-fill bg-indigo-500 h-2.5 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center p-4 border border-gray-200 rounded-lg usage-distribution" 
+                     data-value="{{ more_than_10000 }}" 
+                     data-total="{{ total_entries }}">
+                    <div class="text-3xl font-bold text-indigo-600 mb-2">{{ more_than_10000 }}</div>
+                    <div class="text-sm font-medium text-gray-500">Over 10,000</div>
+                    <div class="mt-2 w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="progress-bar-fill bg-indigo-600 h-2.5 rounded-full"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
 
         <!-- LLM Servers Management -->
-        <div class="bg-gray-100 rounded-lg p-4 md:p-6 shadow-md hover-scale fade-in mb-4 md:mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg md:text-xl font-semibold text-gray-800">LLM Servers</h2>
+        <div class="card fade-in mb-6">
+            <div class="card-header flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-server text-indigo-500 text-xl mr-3"></i>
+                    <h2 class="text-lg font-semibold text-gray-800">LLM Servers</h2>
+                </div>
                 <button onclick="showAddServerModal()"
-                    class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">
-                    <i class="fas fa-plus mr-1"></i> Add Server
+                    class="btn-primary flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Server
                 </button>
             </div>
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full table-auto">
-                    <thead>
-                        <tr class="bg-indigo-50">
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Server URL</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Device</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Models</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200" id="llmServersTable">
-                        <!-- Will be populated by JavaScript -->
-                    </tbody>
-                </table>
+            <div class="card-body">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="table-header">
+                                <th class="px-4 py-3 text-left">Server URL</th>
+                                <th class="px-4 py-3 text-left">Device</th>
+                                <th class="px-4 py-3 text-left">Models</th>
+                                <th class="px-4 py-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="llmServersTable">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- API Keys Table -->
-        <div class="bg-gray-100 rounded-lg p-4 md:p-6 shadow-md hover-scale fade-in">
-            <h2 class="text-lg md:text-xl font-semibold text-gray-800 mb-4">API Keys Information</h2>
-            <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full table-auto">
-                    <thead>
-                        <tr class="bg-indigo-50">
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Key</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Phone</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Usage</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Limit</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Reqs</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Created At</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Last Used</th>
-                            <th
-                                class="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-semibold text-indigo-600">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for api_key in api_keys %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.key[-6:]
-                                }}</td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.phone or
-                                'N/A' }}</td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">
-                                <div class="flex items-center">
-                                    <span>{{ api_key.usage }}/{{ api_key.limit }}</span>
-                                    <div class="progress-bar ml-2 w-16">
-                                        <div class="progress-bar-fill" {% if api_key.limit> 0 %}style="width: {{
-                                            (api_key.usage / api_key.limit * 100) }}%"{% else %}style="width: 0%"{%
-                                            endif %}>
+        <div class="card fade-in scalable-card">
+    <div class="card fade-in">
+            <div class="card-header">
+                <div class="flex items-center">
+                    <i class="fas fa-key text-indigo-500 text-xl mr-3"></i>
+                    <h2 class="text-lg font-semibold text-gray-800">API Keys Information</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="table-header">
+                                <th class="px-4 py-3 text-left">Key</th>
+                                <th class="px-4 py-3 text-left">Phone</th>
+                                <th class="px-4 py-3 text-left">Usage</th>
+                                <th class="px-4 py-3 text-left">Limit</th>
+                                <th class="px-4 py-3 text-left">Reqs</th>
+                                <th class="px-4 py-3 text-left">Created At</th>
+                                <th class="px-4 py-3 text-left">Last Used</th>
+                                <th class="px-4 py-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for api_key in api_keys %}
+                            <tr class="table-row">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ api_key.key[-6:] }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ api_key.phone or 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium">{{ api_key.usage }}/{{ api_key.limit }}</span>
+                                        <div class="progress-bar mt-1 w-full">
+                                            <div class="progress-bar-fill api-key-usage" 
+                                             data-usage="{{ api_key.usage }}"
+                                             data-limit="{{ api_key.limit }}"></div>
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td id="limit_{{ api_key.key }}" class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.limit }}
-                            </td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.reqs }}
-                            </td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.created_at
-                                or 'N/A' }}</td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700">{{ api_key.last_used
-                                or 'N/A' }}</td>
-                            <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">
-                                <div class="flex space-x-2">
-                                    <button data-key="{{ api_key.key }}"
-                                        onclick="resetUsage(this.getAttribute('data-key'))"
-                                        class="text-green-600 hover:text-green-800" title="Reset Usage">
-                                        <i class="fas fa-redo"></i>
-                                    </button>
-                                    <button data-key="{{ api_key.key }}" data-limit="{{ api_key.limit }}"
-                                        onclick="showEditLimit(this.getAttribute('data-key'), this.getAttribute('data-limit'))"
-                                        class="text-indigo-600 hover:text-indigo-800" title="Edit Limit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button data-key="{{ api_key.key }}"
-                                        onclick="revokeKey(this.getAttribute('data-key'))"
-                                        class="text-red-600 hover:text-red-800" title="Revoke Key">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                                <td id="limit_{{ api_key.key }}" class="px-4 py-3 text-sm text-gray-600">{{ api_key.limit }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ api_key.reqs }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ api_key.created_at or 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ api_key.last_used or 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="flex space-x-3">
+                                        <button data-key="{{ api_key.key }}"
+                                            onclick="resetUsage(this.getAttribute('data-key'))"
+                                            class="text-green-500 hover:text-green-700 transition-colors" title="Reset Usage">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                        <button data-key="{{ api_key.key }}" data-limit="{{ api_key.limit }}"
+                                            onclick="showEditLimit(this.getAttribute('data-key'), this.getAttribute('data-limit'))"
+                                            class="text-indigo-500 hover:text-indigo-700 transition-colors" title="Edit Limit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button data-key="{{ api_key.key }}"
+                                            onclick="revokeKey(this.getAttribute('data-key'))"
+                                            class="text-red-500 hover:text-red-700 transition-colors" title="Revoke Key">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add Server Modal -->
-    <div id="addServerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-auto">
-            <h3 class="text-lg font-semibold mb-4">Add LLM Server</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Server URL</label>
-                    <input type="text" id="serverUrl" class="w-full px-3 py-2 border rounded"
-                        placeholder="https://api.example.com">
+    <div id="addServerModal" class="fixed inset-0 z-50 modal hidden items-center justify-center p-4">
+        <div class="modal-content w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Add LLM Server</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Server URL</label>
+                        <input type="text" id="serverUrl" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="https://api.example.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Device Info</label>
+                        <input type="text" id="serverDevice" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="GPU/CPU info">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">API Key (optional)</label>
+                        <input type="text" id="serverApiKey" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="Optional API key">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Models (JSON format)</label>
+                        <textarea id="serverModels" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" rows="4"
+                            placeholder='{"public-model-name": {"name": "actual-model-name", "reqs": 0, "status": true}}'></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Device Info</label>
-                    <input type="text" id="serverDevice" class="w-full px-3 py-2 border rounded"
-                        placeholder="GPU/CPU info">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button onclick="closeAddServerModal()"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+                    <button onclick="addServer()"
+                        class="btn-primary">Add Server</button>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">API Key (optional)</label>
-                    <input type="text" id="serverApiKey" class="w-full px-3 py-2 border rounded"
-                        placeholder="Optional API key">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Models (JSON format)</label>
-                    <textarea id="serverModels" class="w-full px-3 py-2 border rounded" rows="4"
-                        placeholder='{"public-model-name": {"name": "actual-model-name", "reqs": 0, "status": true}}'></textarea>
-                </div>
-            </div>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button onclick="closeAddServerModal()"
-                    class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-                <button onclick="addServer()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Add</button>
             </div>
         </div>
     </div>
 
     <!-- Edit Server Modal -->
-    <div id="editServerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-auto">
-            <h3 class="text-lg font-semibold mb-4">Edit LLM Server</h3>
-            <div class="space-y-4">
-                <input type="hidden" id="editServerUrl">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Device Info</label>
-                    <input type="text" id="editServerDevice" class="w-full px-3 py-2 border rounded"
-                        placeholder="GPU/CPU info">
+    <div id="editServerModal" class="fixed inset-0 z-50 modal hidden items-center justify-center p-4">
+        <div class="modal-content w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Edit LLM Server</h3>
+                <div class="space-y-4">
+                    <input type="hidden" id="editServerUrl">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Device Info</label>
+                        <input type="text" id="editServerDevice" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="GPU/CPU info">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">API Key (optional)</label>
+                        <input type="text" id="editServerApiKey" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            placeholder="Optional API key">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-2">Models (JSON format)</label>
+                        <textarea id="editServerModels" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" rows="4"
+                            placeholder='{"public-model-name": {"name": "actual-model-name", "reqs": 0, "status": true}}'></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">API Key (optional)</label>
-                    <input type="text" id="editServerApiKey" class="w-full px-3 py-2 border rounded"
-                        placeholder="Optional API key">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button onclick="closeEditServerModal()"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+                    <button onclick="updateServer()"
+                        class="btn-primary">Save Changes</button>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Models (JSON format)</label>
-                    <textarea id="editServerModels" class="w-full px-3 py-2 border rounded" rows="4"
-                        placeholder='{"public-model-name": {"name": "actual-model-name", "reqs": 0, "status": true}}'></textarea>
-                </div>
-            </div>
-            <div class="flex justify-end space-x-2 mt-4">
-                <button onclick="closeEditServerModal()"
-                    class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-                <button onclick="updateServer()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save</button>
             </div>
         </div>
     </div>
@@ -405,22 +475,47 @@
     </div>
 
     <!-- Edit Limit Modal -->
-    <div id="editLimitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-sm mx-auto">
-            <h3 class="text-lg font-semibold mb-4">Edit Token Limit</h3>
-            <input type="number" id="newLimit" class="w-full px-3 py-2 border rounded mb-4"
-                placeholder="Enter new limit">
-            <input type="hidden" id="currentApiKey">
-            <div class="flex justify-end space-x-2">
-                <button onclick="closeEditModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-                <button onclick="updateLimit()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save</button>
+    <div id="editLimitModal" class="fixed inset-0 z-50 modal hidden items-center justify-center p-4">
+        <div class="modal-content w-full max-w-sm">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Edit Token Limit</h3>
+                <input type="number" id="newLimit" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4"
+                    placeholder="Enter new limit">
+                <input type="hidden" id="currentApiKey">
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeEditModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancel</button>
+                    <button onclick="updateLimit()"
+                        class="btn-primary">Save Limit</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Dashboard JavaScript -->
     <script src="/static/js/dashboard.js"></script>
+    <script>
+        // Initialize all progress bars after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize usage distribution bars
+            document.querySelectorAll('.usage-distribution').forEach(container => {
+                const value = parseInt(container.dataset.value);
+                const total = parseInt(container.dataset.total);
+                const percentage = total > 0 ? (value / total * 100) : 0;
+                
+                const bar = container.querySelector('.progress-bar-fill');
+                bar.style.width = `${percentage}%`;
+            });
+            
+            // Initialize API key usage bars
+            document.querySelectorAll('.api-key-usage').forEach(bar => {
+                const usage = parseInt(bar.dataset.usage);
+                const limit = parseInt(bar.dataset.limit);
+                const percentage = limit > 0 ? (usage / limit * 100) : 0;
+                
+                bar.style.width = `${percentage}%`;
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -21,15 +21,17 @@ from app.utils.helpers import get_current_time, log_api_usage
 
 router = APIRouter()
 
+
 def _handle_llm_server_action(request, api_service, data):
     """处理LLM服务器操作的核心逻辑"""
     action = data.get("action")
     url = data.get("url")
     config = data.get("config", {})
     model_status = data.get("status")
-    
+
     # 解码URL
     from urllib.parse import unquote
+
     url = unquote(url)
     servers = api_service.llm_servers_cache
 
@@ -54,16 +56,17 @@ def _handle_llm_server_action(request, api_service, data):
                 models[model_id]["status"] = model_status
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
-    
+
     api_service.save_llm_servers()
-    
+
     # 重新初始化LLM资源
     llm_service = request.app.state.app.llm_service
     with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
         servers_data = json.load(f)
     llm_service.init_llm_resources(servers_data)
-    
+
     return {"status": "success"}
+
 
 @router.get("/get-llm-servers")
 @admin_required
@@ -74,9 +77,9 @@ async def get_llm_servers(request: Request):
         return api_service.llm_servers_cache
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
-            detail=f"Error loading LLM servers: {str(e)}"
+            status_code=500, detail=f"Error loading LLM servers: {str(e)}"
         )
+
 
 @router.post("/update-llm-servers")
 @admin_required
@@ -92,8 +95,9 @@ async def update_llm_servers(request: Request):
         raise HTTPException(
             status_code=500,
             detail=f"Error updating LLM servers: {str(e)}",
-            headers={"X-Error-Details": str(e)}
+            headers={"X-Error-Details": str(e)},
         )
+
 
 @router.get("/models")
 @router.get("/v1/models")
@@ -102,32 +106,34 @@ async def list_models():
     try:
         with open(settings.LLM_SERVERS_FILE, "r", encoding="utf-8") as f:
             config = json.load(f)
-        
+
         models = []
         for server_url, server_info in config.items():
             device = server_info.get("device", "unknown")
             for model_id, model_info in server_info.get("model", {}).items():
                 if model_info.get("status", False):
-                    models.append({
-                        "id": model_id,
-                        "object": "model",
-                        "owned_by": device,
-                        "name": model_info.get("name", model_id)
-                    })
-        
-        return {
-            "object": "list",
-            "data": models
-        }
+                    models.append(
+                        {
+                            "id": model_id,
+                            "object": "model",
+                            "owned_by": device,
+                            "key": model_id,
+                        }
+                    )
+
+        return {"object": "list", "data": models}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
 
+
 templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
+
 
 def get_services(request: Request) -> tuple[LLMService, ApiService]:
     """获取服务实例"""
     app = request.app.state.app
     return app.llm_service, app.api_service
+
 
 @router.get("/get-models")
 async def get_models():
@@ -162,15 +168,18 @@ async def get_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading models: {str(e)}")
 
+
 @router.get("/")
 async def home():
     """首页"""
     return FileResponse(os.path.join(settings.STATIC_DIR, "index.html"))
 
+
 @router.get("/login")
 async def login_page(request: Request):
     """登录页面"""
     return templates.TemplateResponse("login.html", {"request": request})
+
 
 @router.post("/login")
 async def login(request: Request):
@@ -189,11 +198,13 @@ async def login(request: Request):
 
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
+
 @router.get("/logout")
 async def logout(request: Request):
     """退出登录"""
     request.session.clear()
     return RedirectResponse(url="/")
+
 
 @router.post("/generate-api-key")
 async def generate_api_key(request: Request):
@@ -223,6 +234,7 @@ async def generate_api_key(request: Request):
 
     return {"api_key": new_key}
 
+
 @router.post("/update-api-key-limit")
 @admin_required
 async def update_api_key_limit(request: Request):
@@ -243,6 +255,7 @@ async def update_api_key_limit(request: Request):
 
     raise HTTPException(status_code=404, detail="API key not found")
 
+
 @router.post("/reset-api-key-usage")
 @admin_required
 async def reset_api_key_usage(request: Request):
@@ -260,6 +273,7 @@ async def reset_api_key_usage(request: Request):
 
     raise HTTPException(status_code=404, detail="API key not found")
 
+
 @router.post("/revoke-api-key")
 @admin_required
 async def revoke_api_key(request: Request):
@@ -276,6 +290,7 @@ async def revoke_api_key(request: Request):
 
     raise HTTPException(status_code=404, detail="API key not found")
 
+
 @router.get("/get-usage", response_class=HTMLResponse)
 @admin_required
 async def usage_dashboard(request: Request):
@@ -290,19 +305,20 @@ async def usage_dashboard(request: Request):
             "limit": info.limit,
             "reqs": info.reqs,
             "created_at": info.created_at,
-            "last_used": info.last_used if hasattr(info, "last_used") else "N/A"
+            "last_used": info.last_used if hasattr(info, "last_used") else "N/A",
         }
         for key, info in api_service.api_usage.items()
     ]
     return templates.TemplateResponse(
-        "dashboard_manage.html", 
+        "dashboard_manage.html",
         {
             "request": request,
             **stats.dict(),
             "api_keys": api_keys,
-            "current_time": get_current_time()
-        }
+            "current_time": get_current_time(),
+        },
     )
+
 
 @router.options("/v1/chat/completions")
 @router.options("/chat/completions")
@@ -311,6 +327,7 @@ async def usage_dashboard(request: Request):
 async def options_handler():
     """处理 OPTIONS 请求"""
     return Response(status_code=200)
+
 
 @router.post("/v1/chat/completions")
 @router.post("/chat/completions")
@@ -402,6 +419,7 @@ async def proxy_handler_chat(request: Request):
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
 
+
 @router.post("/v1/embeddings")
 @router.post("/embeddings")
 async def proxy_handler_embeddings(request: Request):
@@ -432,8 +450,10 @@ async def proxy_handler_embeddings(request: Request):
 
         # 更新用量（embedding模型使用系数0.1）
         if "usage" in response and "total_tokens" in response["usage"]:
-            api_service.api_usage[api_key].usage += 0.1 * response["usage"]["total_tokens"]
-        
+            api_service.api_usage[api_key].usage += (
+                0.1 * response["usage"]["total_tokens"]
+            )
+
         log_api_usage(api_key, api_service.api_usage[api_key].dict())
         api_service.increment_model_reqs(target_server, model)
 
@@ -448,6 +468,7 @@ async def proxy_handler_embeddings(request: Request):
         return JSONResponse({"error": str(e.detail)}, status_code=e.status_code)
     except Exception as e:
         return JSONResponse({"error": "Internal server error"}, status_code=500)
+
 
 @router.post("/v1/completions")
 @router.post("/completions")
